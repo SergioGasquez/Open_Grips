@@ -88,3 +88,11 @@ See each "Roller Offset" area above. Apply the same concepts.
 ##### Roller Diameter
 
 TBD
+
+### Web customizer
+
+This fork includes an experimental GitHub Pages customizer in `docs/`. It runs fully in the browser, computes the measurement-driven offsets above, and exports a parametric prototype STL for Prometheus/Sisyphus-style frames, rollers, and pins.
+
+To publish it, enable GitHub Pages for this repository and choose **Deploy from a branch** → the current branch → `/docs`.
+
+Note: GitHub Pages is static, so this first web version does not directly edit the STEP solids with FreeCAD/OpenCascade. It is intended as a browser-based parametric prototype while the exact STEP/CAD automation is developed.

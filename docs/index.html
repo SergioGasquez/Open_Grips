@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open Grips Customizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">Open Grips</p>
+      <h1>Prometheus / Sisyphus measurement customizer</h1>
+      <p class="lede">Enter finger measurements, review the computed offsets, and download an experimental printable STL generated in your browser.</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card warning">
+      <h2>Important status</h2>
+      <p>This GitHub Pages version is a client-side parametric rebuild based on the formulas in the repository README. It does <strong>not</strong> directly edit the STEP solids; GitHub Pages is static and cannot run FreeCAD/OpenCascade server-side.</p>
+      <p>Use generated STLs as experimental fit prototypes. For production-quality matching to the STEP files, the next step is a FreeCAD/CadQuery backend or a full parametric CAD rebuild.</p>
+    </section>
+
+    <section class="card controls">
+      <h2>1. Model options</h2>
+      <div class="grid two">
+        <label>Model
+          <select id="model">
+            <option value="prometheus">Prometheus</option>
+            <option value="sisyphus">Sisyphus</option>
+          </select>
+        </label>
+        <label>Hand
+          <select id="hand">
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+          </select>
+        </label>
+        <label>Part to export
+          <select id="part">
+            <option value="frame">Frame/body</option>
+            <option value="rollers">Rollers</option>
+            <option value="pins">Pins</option>
+            <option value="assembly">Assembly preview STL</option>
+          </select>
+        </label>
+        <label>Mesh quality
+          <select id="quality">
+            <option value="32">Normal</option>
+            <option value="48">High</option>
+            <option value="64">Very high</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Finger measurements <span class="muted">mm</span></h2>
+      <div class="table-wrap">
+        <table id="measurements">
+          <thead>
+            <tr>
+              <th>Finger</th>
+              <th>Full finger length</th>
+              <th>PIP-to-DIP</th>
+              <th>DIP-to-tip</th>
+              <th>Desired angle</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button id="loadDefaults" type="button">Load repo defaults</button>
+        <button id="downloadJson" type="button" class="secondary">Download measurements JSON</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3. Optional geometry tuning</h2>
+      <div class="grid four">
+        <label>Finger spacing
+          <input id="fingerSpacing" type="number" min="16" max="35" step="0.1" value="22">
+        </label>
+        <label>Channel width
+          <input id="channelWidth" type="number" min="8" max="25" step="0.1" value="14">
+        </label>
+        <label>Roller diameter
+          <input id="rollerDiameter" type="number" min="6" max="30" step="0.1" value="10">
+        </label>
+        <label>Pin diameter
+          <input id="pinDiameter" type="number" min="2" max="12" step="0.1" value="4">
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>4. Computed values</h2>
+      <div class="table-wrap">
+        <table id="computed">
+          <thead>
+            <tr>
+              <th>Finger</th>
+              <th>Vertical offset vs pinky</th>
+              <th>Horizontal offset vs pinky</th>
+              <th>Roof height</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card download-card">
+      <h2>5. Generate STL</h2>
+      <p>The STL is generated locally in this browser; no measurements are uploaded.</p>
+      <div class="actions">
+        <button id="downloadStl" type="button" class="primary">Generate & download STL</button>
+      </div>
+      <p id="status" class="status" role="status"></p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Open source project files remain in the repository. This page is suitable for GitHub Pages from the <code>/docs</code> folder.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
