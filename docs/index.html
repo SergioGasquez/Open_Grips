@@ -11,15 +11,14 @@
     <div>
       <p class="eyebrow">Open Grips</p>
       <h1>Prometheus / Sisyphus measurement customizer</h1>
-      <p class="lede">Enter finger measurements, review the computed offsets, and download an experimental printable STL generated in your browser.</p>
+      <p class="lede">Enter finger measurements, review the computed offsets, and download a customized FreeCAD model generated from your inputs.</p>
     </div>
   </header>
 
   <main class="layout">
     <section class="card warning">
       <h2>Important status</h2>
-      <p>This GitHub Pages version is a client-side parametric rebuild based on the formulas in the repository README. It does <strong>not</strong> directly edit the STEP solids; GitHub Pages is static and cannot run FreeCAD/OpenCascade server-side.</p>
-      <p>Use generated STLs as experimental fit prototypes. For production-quality matching to the STEP files, the next step is a FreeCAD/CadQuery backend or a full parametric CAD rebuild.</p>
+      <p>The original FreeCAD templates are published with this site. Your measurements are applied locally in your browser, then a customized <code>.FCStd</code> is downloaded.</p>
     </section>
 
     <section class="card controls">
@@ -37,21 +36,7 @@
             <option value="right">Right</option>
           </select>
         </label>
-        <label>Part to export
-          <select id="part">
-            <option value="frame">Frame/body</option>
-            <option value="rollers">Rollers</option>
-            <option value="pins">Pins</option>
-            <option value="assembly">Assembly preview STL</option>
-          </select>
-        </label>
-        <label>Mesh quality
-          <select id="quality">
-            <option value="32">Normal</option>
-            <option value="48">High</option>
-            <option value="64">Very high</option>
-          </select>
-        </label>
+
       </div>
     </section>
 
@@ -78,25 +63,7 @@
     </section>
 
     <section class="card">
-      <h2>3. Optional geometry tuning</h2>
-      <div class="grid four">
-        <label>Finger spacing
-          <input id="fingerSpacing" type="number" min="16" max="35" step="0.1" value="22">
-        </label>
-        <label>Channel width
-          <input id="channelWidth" type="number" min="8" max="25" step="0.1" value="14">
-        </label>
-        <label>Roller diameter
-          <input id="rollerDiameter" type="number" min="6" max="30" step="0.1" value="10">
-        </label>
-        <label>Pin diameter
-          <input id="pinDiameter" type="number" min="2" max="12" step="0.1" value="4">
-        </label>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>4. Computed values</h2>
+      <h2>3. Computed values</h2>
       <div class="table-wrap">
         <table id="computed">
           <thead>
@@ -113,19 +80,22 @@
     </section>
 
     <section class="card download-card">
-      <h2>5. Generate STL</h2>
-      <p>The STL is generated locally in this browser; no measurements are uploaded.</p>
+      <h2>4. Generate customized FreeCAD model</h2>
+      <p>Downloads a customized copy of the original parametric FreeCAD model with the measurement-driven variables patched from your current inputs.</p>
+      <p class="muted">The downloaded <code>.FCStd</code> should be opened in FreeCAD, recomputed if prompted, then exported to STL/STEP.</p>
       <div class="actions">
-        <button id="downloadStl" type="button" class="primary">Generate & download STL</button>
+        <button id="downloadFreecad" type="button" class="primary">Download customized FreeCAD file</button>
       </div>
-      <p id="status" class="status" role="status"></p>
     </section>
+
+    <p id="status" class="status" role="status"></p>
   </main>
 
   <footer>
     <p>Open source project files remain in the repository. This page is suitable for GitHub Pages from the <code>/docs</code> folder.</p>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

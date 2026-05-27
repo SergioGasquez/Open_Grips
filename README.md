@@ -2,15 +2,7 @@ Open Grips – Isolated Frictionless Ergonomic Grip Training for FDP and FDS
 
 ## Original Project
 
-The original project uses FreeCad for parametric modeling, and 3D printing for manufacturing. See PDF for full description
-
-## This Fork
-
-The key things I was aiming to improve in this fork were:
-
-### Standard file format
-
-The FreeCAD file format exports were not easy to move between programs for modification. My hope is that by providing a .step file users in the future will be able to open and modify the file to their liking in whatever CAD software they use.
+The restored `Original/` folder contains the original FreeCAD parametric source files and PDF documentation.
 
 ### Ease of printing
 
@@ -35,7 +27,7 @@ You're reading it! There's more work to be done, but the process of modifying th
 
 One of the core ideas advertised by a company out there is that each user's hand is a little different and requires minute adjustments to get things just right for each person. In practice, we've found this to be not majorly important (exact measurements and adjustments from person to person do not heavily impact the effectiveness of the training), but for major differences in hand/finger sizes it is definitely still relevant.
 
-In the original models, this modification was done using parametric model variables. I wasn't very familiar with FreeCAD, so in moving over to Fusion360 I dropped the compatibility with these variables. I plan to work on reimplementing them as I'm able. (Unless someone else wants to? :) For now, modification will need to be done by hand.
+In the original models, this modification was done using parametric model variables. The Fusion/STEP exports are still useful CAD interchange files, but the restored FreeCAD files in `Original/` are the parametric source for measurement-driven customization.
 
 Until I finish some new tooling for adjusting these files, I'll explain the gist of what we've thought through here:
 
@@ -91,8 +83,8 @@ TBD
 
 ### Web customizer
 
-This fork includes an experimental GitHub Pages customizer in `docs/`. It runs fully in the browser, computes the measurement-driven offsets above, and exports a parametric prototype STL for Prometheus/Sisyphus-style frames, rollers, and pins.
+This fork includes an experimental customizer in `docs/`. It computes the measurement-driven offsets above and downloads a customized `.FCStd` by patching the original FreeCAD template variables.
+
+The original FreeCAD templates are published under `docs/templates/`, so the customizer does not require a backend or a local file upload. The selected template is fetched and patched locally in your browser. Open the customized `.FCStd` in FreeCAD, recompute if prompted, then export final STL/STEP for the best-quality model.
 
 To publish it, enable GitHub Pages for this repository and choose **Deploy from a branch** → the current branch → `/docs`.
-
-Note: GitHub Pages is static, so this first web version does not directly edit the STEP solids with FreeCAD/OpenCascade. It is intended as a browser-based parametric prototype while the exact STEP/CAD automation is developed.
