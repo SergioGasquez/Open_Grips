@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prometheus hand measurement</title>
+<style>
+  body { margin: 0; display: flex; height: 100vh; font: 14px system-ui, sans-serif; }
+  main { flex: 1; position: relative; background: #222; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+  #hint { position: absolute; inset: 0; display: grid; place-items: center; color: #aaa; pointer-events: none; }
+  aside { width: 380px; overflow: auto; padding: 0 12px 12px; box-sizing: border-box; border-left: 1px solid #ccc; }
+  ol { padding-left: 24px; margin: 4px 0; }
+  li { cursor: pointer; padding: 1px 4px; }
+  li.done { color: #888; }
+  li.active { background: #ffe58a; color: #000; }
+  table { border-collapse: collapse; width: 100%; margin: 4px 0; }
+  th, td { border: 1px solid #ccc; padding: 2px 4px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  textarea { width: 100%; height: 200px; font: 12px ui-monospace, monospace; box-sizing: border-box; }
+  small { color: #666; }
+</style>
+</head>
+<body>
+<main>
+  <canvas id="canvas"></canvas>
+  <div id="hint">Choose, drop, or paste a hand photo</div>
+</main>
+<aside>
+  <h3>1. Photo</h3>
+  <input type="file" id="file" accept="image/jpeg,image/png,image/webp">
+  <p><small>Palm up, fingers straight, ruler at palm height beside the fingers, camera parallel to the table.
+    Scroll to zoom, drag to pan, drag a point to move it, click a step to place it again.</small></p>
+  <h3>2. Points</h3>
+  <!-- One finger, palm side, pointing right; the double PIP crease is clicked at its midpoint. -->
+  <svg viewBox="0 20 300 92" width="100%" role="img" aria-label="Finger landmarks and measured lengths">
+    <defs>
+      <marker id="arrow" viewBox="0 0 6 6" refX="6" refY="3" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0 0L6 3L0 6z" fill="#333"/>
+      </marker>
+    </defs>
+    <path d="M0 48H262a22 22 0 0 1 0 44H0" fill="#f2c9a8" stroke="#b07a5a"/>
+    <path d="M40 52V88M118 52V88M124 52V88M200 52V88" stroke="#8a5a3c" stroke-width="1.5"/>
+    <path d="M40 34V48M121 34V48M200 34V48M284 34V70" stroke="#999" stroke-dasharray="2 2"/>
+    <g stroke="#333" marker-start="url(#arrow)" marker-end="url(#arrow)">
+      <path d="M40 38H121"/>
+      <path d="M121 38H200"/>
+      <path d="M200 38H284"/>
+    </g>
+    <g fill="none" stroke="#e74c3c" stroke-width="1.5">
+      <circle cx="40" cy="70" r="4"/>
+      <circle cx="121" cy="70" r="4"/>
+      <circle cx="200" cy="70" r="4"/>
+      <circle cx="284" cy="70" r="4"/>
+    </g>
+    <g font-size="10" text-anchor="middle" fill="#333">
+      <text x="80" y="33">base → PIP</text>
+      <text x="160" y="33">PIP → DIP</text>
+      <text x="242" y="33">DIP → tip</text>
+      <text x="40" y="106">base crease</text>
+      <text x="121" y="106">PIP crease</text>
+      <text x="200" y="106">DIP crease</text>
+      <text x="282" y="106">tip</text>
+    </g>
+  </svg>
+  <p><small>Click the four circled points on every finger. The segments and how far each base crease
+    sits along the hand place the roller (Height, Depth); DIP → tip sets the blocker (To_Blocker).</small></p>
+  <label>Distance between the two ruler marks (mm)
+    <input type="number" id="rulerMm" placeholder="e.g. 100" min="1" step="any" style="width: 70px"></label>
+  <p><small>Pick two ruler marks far apart that span the fingers (e.g. 0 and 10 cm), not the palm:
+    camera tilt changes the scale across the photo.
+    If a joint has a double crease, click midway between the creases.</small></p>
+  <ol id="steps"></ol>
+  <h3>3. Results (mm)</h3>
+  <div id="results"></div>
+  <textarea id="output" readonly></textarea>
+  <button id="copy">Copy</button>
+</aside>
+<script>
+// Parameter names and defaults match the VarSet in Original/OpenGrips_Prometheus.FCStd.
+// Height and Depth place each fingertip in the Original/Open_Grips.pdf claw grip (proximal
+// phalanx vertical, PIP and DIP flexed 55 deg), relative to the pinky; the base crease offset
+// along the middle finger stands in for the knuckle offset. To_Blocker = DIP-tip / tan(angle) (README.md).
+const FINGERS = [
+  { key: 'I', name: 'Index', angle: 57, color: '#e74c3c', defaults: { Height: 23, Depth: 8, To_Blocker: 14 } },
+  { key: 'M', name: 'Middle', angle: 60, color: '#2ecc71', defaults: { Height: 32, Depth: 12, To_Blocker: 15 } },
+  { key: 'R', name: 'Ring', angle: 60, color: '#3498db', defaults: { Height: 15, Depth: 12, To_Blocker: 15 } },
+  { key: 'P', name: 'Pinky', angle: 55, color: '#c56cf0', defaults: { Height: 0, Depth: 0, To_Blocker: 12 } },
+];
+const PARAMS = ['Height', 'Depth', 'To_Blocker'];
+const CLAW = 55 * Math.PI / 180;
+const LANDMARKS = [
+  ['base', 'base crease (finger meets palm)'],
+  ['pip', 'middle joint (PIP) crease'],
+  ['dip', 'end joint (DIP) crease'],
+  ['tip', 'fingertip'],
+];
+const RULER = { ids: ['ruler0', 'ruler1'], color: '#f1c40f' };
+const STEPS = [
+  { id: 'ruler0', label: 'Ruler: first mark', color: RULER.color },
+  { id: 'ruler1', label: 'Ruler: second mark', color: RULER.color },
+  ...FINGERS.flatMap(f => LANDMARKS.map(([lm, text]) => ({ id: `${f.key}_${lm}`, label: `${f.name}: ${text}`, color: f.color }))),
+];
+const CHAINS = [RULER, ...FINGERS.map(f => ({ ids: LANDMARKS.map(([lm]) => `${f.key}_${lm}`), color: f.color }))];
+
+const $ = id => document.getElementById(id);
+const canvas = $('canvas');
+const ctx = canvas.getContext('2d');
+
+let img = null;
+let fileName = '';
+let view = { s: 1, x: 0, y: 0 }; // canvas = image * s + (x, y)
+let points = {}; // step id -> image pixel coordinates
+let active = 0; // STEPS index placed by the next click, -1 when all are placed
+let drag = null;
+
+const f1 = x => x.toFixed(1);
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const toScreen = p => ({ x: p.x * view.s + view.x, y: p.y * view.s + view.y });
+const toImage = p => ({ x: (p.x - view.x) / view.s, y: (p.y - view.y) / view.s });
+function canvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function loadImage(file) {
+  if (!file) return;
+  const im = new Image();
+  im.onload = () => {
+    img = im;
+    fileName = file.name;
+    points = {};
+    active = 0;
+    const s = Math.min(canvas.clientWidth / im.width, canvas.clientHeight / im.height);
+    view = { s, x: (canvas.clientWidth - im.width * s) / 2, y: (canvas.clientHeight - im.height * s) / 2 };
+    $('hint').style.display = 'none';
+    update();
+  };
+  im.onerror = () => alert(`Cannot decode ${file.name}; export it as JPEG or PNG.`);
+  im.src = URL.createObjectURL(file);
+}
+
+function measure() {
+  const mm = Number($('rulerMm').value);
+  if (!points.ruler0 || !points.ruler1 || !(mm > 0)) return null;
+  const mmPerPx = mm / dist(points.ruler0, points.ruler1);
+  const marks = FINGERS.map(f => LANDMARKS.map(([lm]) => points[`${f.key}_${lm}`]));
+  if (marks.flat().some(p => !p)) return null;
+  // Hand axis: the middle finger (anatomical long axis of the hand), base -> tip.
+  const [middleBase, , , middleTip] = marks[FINGERS.findIndex(f => f.key === 'M')];
+  const middleLength = dist(middleBase, middleTip);
+  const axis = { x: (middleTip.x - middleBase.x) / middleLength, y: (middleTip.y - middleBase.y) / middleLength };
+  const fingers = {};
+  FINGERS.forEach((f, i) => {
+    const [base, pip, dip, tip] = marks[i];
+    fingers[f.key] = {
+      basePip: dist(base, pip) * mmPerPx,
+      pipDip: dist(pip, dip) * mmPerPx,
+      dipTip: dist(dip, tip) * mmPerPx,
+      base: (base.x * axis.x + base.y * axis.y) * mmPerPx,
+    };
+  });
+  const reach = r => r.base + r.basePip + r.pipDip * Math.cos(CLAW) + r.dipTip * Math.cos(2 * CLAW);
+  const depth = r => r.pipDip * Math.sin(CLAW) + r.dipTip * Math.sin(2 * CLAW);
+  const pinky = fingers.P;
+  for (const r of Object.values(fingers)) r.stagger = r.base - pinky.base;
+  const params = Object.fromEntries(FINGERS.map(f => [f.key, {
+    Height: reach(fingers[f.key]) - reach(pinky),
+    Depth: depth(fingers[f.key]) - depth(pinky),
+    To_Blocker: fingers[f.key].dipTip / Math.tan(f.angle * Math.PI / 180),
+  }]));
+  return { mmPerPx, fingers, params };
+}
+
+function resultsTable(m) {
+  const row = (label, cell) => `<tr><td>${label}</td>${FINGERS.map(f => `<td>${cell(f)}</td>`).join('')}</tr>`;
+  return `<table>
+    <tr><th></th>${FINGERS.map(f => `<th>${f.name}</th>`).join('')}</tr>
+    ${row('Base → PIP', f => f1(m.fingers[f.key].basePip))}
+    ${row('PIP → DIP', f => f1(m.fingers[f.key].pipDip))}
+    ${row('DIP → tip', f => f1(m.fingers[f.key].dipTip))}
+    ${row('Base offset', f => f1(m.fingers[f.key].stagger))}
+    ${PARAMS.map(p => row(`${p} <small>(default)</small>`,
+      f => `${f1(m.params[f.key][p])} <small>(${f.defaults[p]})</small>`)).join('')}
+  </table><small>Scale ${f1(1 / m.mmPerPx)} px/mm</small>`;
+}
+
+function outputText(m) {
+  const rounded = Object.fromEntries(Object.entries(points).map(([id, p]) => [id, [Math.round(p.x), Math.round(p.y)]]));
+  return [
+    `# Prometheus parameters (mm) from ${fileName}, ruler ${$('rulerMm').value} mm, ${f1(1 / m.mmPerPx)} px/mm`,
+    ...FINGERS.map(f => {
+      const r = m.fingers[f.key];
+      return `# ${f.name}: base-PIP ${f1(r.basePip)}, PIP-DIP ${f1(r.pipDip)}, DIP-tip ${f1(r.dipTip)}, base offset ${f1(r.stagger)}`;
+    }),
+    `# points ${JSON.stringify(rounded)}`,
+    ...FINGERS.flatMap(f => PARAMS.map(p => `Base_${f.key}_${p} = ${f1(m.params[f.key][p])}`)),
+  ].join('\n');
+}
+
+function update() {
+  $('steps').replaceChildren(...STEPS.map((step, i) => {
+    const li = document.createElement('li');
+    li.textContent = step.label;
+    li.className = i === active ? 'active' : points[step.id] ? 'done' : '';
+    li.style.borderLeft = `4px solid ${step.color}`;
+    li.onclick = () => { active = i; update(); };
+    return li;
+  }));
+  const m = measure();
+  $('results').innerHTML = m ? resultsTable(m) : '<small>Enter the ruler distance and place the ruler marks and all four fingers.</small>';
+  $('output').value = m ? outputText(m) : '';
+  draw();
+}
+
+function draw() {
+  const dpr = devicePixelRatio;
+  canvas.width = canvas.clientWidth * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!img) return;
+  ctx.drawImage(img, view.x, view.y, img.width * view.s, img.height * view.s);
+  ctx.lineWidth = 1.5;
+  for (const { ids, color } of CHAINS) {
+    const ps = ids.map(id => points[id]).filter(Boolean).map(toScreen);
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ps.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.stroke();
+  }
+  // Hollow markers keep the clicked crease visible.
+  for (const step of STEPS) {
+    if (!points[step.id]) continue;
+    const { x, y } = toScreen(points[step.id]);
+    ctx.strokeStyle = step.color;
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.fillStyle = step.color;
+    ctx.fillRect(x - 1, y - 1, 2, 2);
+  }
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (!img) return;
+  const at = canvasPos(e);
+  const hit = STEPS.find(s => points[s.id] && dist(toScreen(points[s.id]), at) < 8);
+  drag = { at, view: { ...view }, id: hit?.id, moved: false };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const at = canvasPos(e);
+  drag.moved ||= dist(at, drag.at) > 3;
+  if (!drag.moved) return;
+  if (drag.id) {
+    points[drag.id] = toImage(at);
+    update();
+  } else {
+    view = { ...drag.view, x: drag.view.x + at.x - drag.at.x, y: drag.view.y + at.y - drag.at.y };
+    draw();
+  }
+});
+canvas.addEventListener('pointerup', e => {
+  if (drag && !drag.moved && active >= 0) {
+    points[STEPS[active].id] = toImage(canvasPos(e));
+    active = STEPS.findIndex(s => !points[s.id]);
+  }
+  drag = null;
+  update();
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const at = canvasPos(e);
+  const k = Math.exp(-e.deltaY * 0.002);
+  view = { s: view.s * k, x: at.x - (at.x - view.x) * k, y: at.y - (at.y - view.y) * k };
+  draw();
+}, { passive: false });
+
+$('file').onchange = e => loadImage(e.target.files[0]);
+$('rulerMm').oninput = update;
+$('copy').onclick = () => navigator.clipboard.writeText($('output').value);
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => { e.preventDefault(); loadImage(e.dataTransfer.files[0]); });
+addEventListener('paste', e => loadImage(e.clipboardData.files[0]));
+addEventListener('resize', draw);
+update();
+</script>
+</body>
+</html>

@@ -4,6 +4,11 @@ Open Grips – Isolated Frictionless Ergonomic Grip Training for FDP and FDS
 
 The original project uses FreeCad for parametric modeling, and 3D printing for manufacturing. See PDF for full description
 
+## Fitting Prometheus to your hand
+
+See [`prometheus-fit/`](prometheus-fit/README.md): measure your hand from a photo and generate fitted,
+print-ready STLs from the original parametric FreeCAD model.
+
 ## This Fork
 
 The key things I was aiming to improve in this fork were:

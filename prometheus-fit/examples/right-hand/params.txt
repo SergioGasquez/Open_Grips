@@ -1,0 +1,20 @@
+# Prometheus parameters (mm), right hand, from measure-hand.html on PXL_20261008_143506195.jpg, ruler 100 mm, 12.6 px/mm
+# Index: base-PIP 21.8, PIP-DIP 21.7, DIP-tip 22.2, base offset 16.5
+# Middle: base-PIP 25.1, PIP-DIP 25.9, DIP-tip 21.5, base offset 19.1
+# Ring: base-PIP 20.8, PIP-DIP 25.6, DIP-tip 22.7, base offset 14.7
+# Pinky: base-PIP 16.5, PIP-DIP 17.9, DIP-tip 20.5, base offset 0.0
+# points {"ruler0":[926,1330],"ruler1":[926,2594],"I_base":[1949,2258],"I_pip":[1976,1984],"I_dip":[1998,1711],"I_tip":[2003,1430],"M_base":[1629,2244],"M_pip":[1612,1927],"M_dip":[1587,1601],"M_tip":[1575,1330],"R_base":[1387,2314],"R_pip":[1339,2056],"R_dip":[1268,1740],"R_tip":[1217,1458],"P_base":[1120,2516],"P_pip":[1084,2310],"P_dip":[1033,2089],"P_tip":[977,1836]}
+Base_I_Height = 23.3
+Base_I_Depth = 4.7
+Base_I_To_Blocker = 14.4
+# Measured M_Height 31.9 and R_Height 22.6 are spread by 2.2 mm each: the middle wall sketch
+# needs the ring and middle pole rails separate (generate.check_rails).
+Base_M_Height = 34.1
+Base_M_Depth = 7.4
+Base_M_To_Blocker = 12.4
+Base_R_Height = 20.4
+Base_R_Depth = 8.3
+Base_R_To_Blocker = 13.1
+Base_P_Height = 0.0
+Base_P_Depth = 0.0
+Base_P_To_Blocker = 14.4
