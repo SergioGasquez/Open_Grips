@@ -407,15 +407,10 @@ module anchor2d() {
 
 // Crossbar and anchor (Y, Z), the web joints rounded by 3.4 as in v43.
 module crossbar2d() {
-  translate([LOCK_Y, 0]) square([FRAME_TOP - LOCK_Y + eps, T]);
-  intersection() {
-    round2d(3.4) union() {
-      translate([LOCK_Y, 0]) square([FRAME_TOP - LOCK_Y + eps, T]);
-      anchor2d();
-    }
-    translate([FRAME_TOP - 6, -1]) square([20, T + 2]);
+  round_corners_in(3.4, [FRAME_TOP - 6, -1], [FRAME_TOP + 14, T + 1]) {
+    translate([LOCK_Y, 0]) square([FRAME_TOP - LOCK_Y + eps, T]);
+    anchor2d();
   }
-  anchor2d();
 }
 
 // Plan (X, Y) of the anchor between its 45 degree ends, which pass through ANCHOR_X0 and ANCHOR_X1

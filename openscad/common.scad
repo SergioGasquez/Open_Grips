@@ -27,6 +27,12 @@ module round2d(r) {
   offset(r) offset(-r) children();
 }
 
+// children() with the convex corners inside the window [p0, p1] rounded by r.
+module round_corners_in(r, p0, p1) {
+  difference() { children(); translate(p0) square(p1 - p0); }
+  intersection() { round2d(r) children(); translate(p0) square(p1 - p0); }
+}
+
 // Rectangle from p0 to p1 with its two low-X corners rounded by r.
 module front_rounded2d(p0, p1, r) {
   intersection() {
@@ -43,15 +49,19 @@ module ball(r) {
 // Extrude a (Y, Z) profile along X with the perimeter edges of one end face rounded by r
 // (side = 1: the face at x1, side = -1: at x0). children(1), if given, is a larger profile
 // whose extra area keeps the edges it covers sharp; it must reach r past those edges.
+// The rounded end is the eroded profile, t thick, swept by a ball; the sharp part ends inside
+// that core so the two share no faces.
 module along_x_rounded(x0, x1, r, side) {
   face = side > 0 ? x1 : x0;
+  t = 0.5;
   intersection() {
     along_x(x0, x1) children(0);
     union() {
-      if (side > 0) along_x(x0 - 1, x1 - r) children($children - 1);
-      else along_x(x0 + r, x1 + 1) children($children - 1);
+      if (side > 0) along_x(x0 - 1, x1 - r - t / 2) children($children - 1);
+      else along_x(x0 + r + t / 2, x1 + 1) children($children - 1);
       minkowski() {
-        along_x(face - side * r - eps, face - side * r + eps) offset(-r) children($children - 1);
+        along_x(min(face - side * r, face - side * (r + t)), max(face - side * r, face - side * (r + t)))
+          offset(-r) children($children - 1);
         ball(r);
       }
     }
@@ -129,9 +139,11 @@ module bore_exit_round(center, rb, p0, n, r) {
   for (k = [0:steps - 1]) {
     a = corner(360 * (k - 0.1) / steps);
     b = corner(360 * (k + 1.1) / steps);
+    // The ball is a touch larger so its path crosses the bore and plane instead of touching
+    // them, which booleans cannot resolve cleanly.
     difference() {
       hull() for (q = [a[0], a[1], a[2], b[0], b[1], b[2]]) translate(q) cube(0.01, center = true);
-      hull() for (q = [a[3], b[3]]) translate(q) ball(r);
+      hull() for (q = [a[3], b[3]]) translate(q) ball(r + 0.02);
     }
   }
 }
