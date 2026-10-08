@@ -20,7 +20,8 @@ import trimesh
 
 ROOT = Path(__file__).resolve().parent.parent
 FREECAD_PYTHON = "/Applications/FreeCAD.app/Contents/Resources/bin/python"
-# Solid order in both STEP files: frame, then roller, pin and wall per finger, end wall, post, guard.
+# Solid order in both STEP files: frame, then roller, pin and wall per finger, end wall, post (the
+# TPU guard, solid 14, is not rebuilt).
 SOLIDS = {
     "frame": 0,
     "pinky_roller": 1,
@@ -36,7 +37,6 @@ SOLIDS = {
     "index_pin": 11,
     "end_wall": 12,
     "post": 13,
-    "guard": 14,
 }
 MODELS = {
     # v43 moved the blockers by hand but kept the frame length of the original blocker positions.

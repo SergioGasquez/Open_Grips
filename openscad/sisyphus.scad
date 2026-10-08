@@ -9,7 +9,7 @@
 use <common.scad>
 
 /* [Output] */
-part = "assembly"; // [assembly, frame, pinky_roller, ring_roller, middle_roller, index_roller, ring_wall, middle_wall, index_wall, end_wall, pinky_pin, ring_pin, middle_pin, index_pin, post, guard]
+part = "assembly"; // [assembly, frame, pinky_roller, ring_roller, middle_roller, index_roller, ring_wall, middle_wall, index_wall, end_wall, pinky_pin, ring_pin, middle_pin, index_pin, post]
 // The model is a left-hand grip; right mirrors every part.
 hand = "left"; // [left, right]
 
@@ -118,15 +118,6 @@ ANCHOR_X0 = E + WIDTH[P] + 2.255;
 ANCHOR_X1 = roller_x(I) + WIDTH[I] / 2 - 2.185;
 FRAME_TOP = ANCHOR_Y - ANCHOR_Z + ANCHOR_R * sqrt(2); // where the bar's underside meets the bed
 CORD_EXIT_R = 3;
-
-// TPU guard (as in v27): a sleeve around the anchor bar, open at the lock slot, clearing the
-// frame by 0.2 mm (0.4 mm around the bar, none at the anchor ends), with two countersunk cord
-// holes along Y.
-GUARD_CLEARANCE = 0.2;
-GUARD_BAR_CLEARANCE = 0.4;
-GUARD_WALL = 3;
-GUARD_CHAMFER = 2;
-GUARD_HOLE_INSET = 5.517; // inside the anchor ends at the tube axis
 
 for (f = [R:I])
   assert(seat_end(f) < LOCK_Y - STOP_SETBACK[f] - WH * tan(STOP_ANGLE[f]),
@@ -428,8 +419,7 @@ module crossbar_plan() {
   translate([fillet_x, LOCK_Y - 1]) square([FW - fillet_x, FRAME_TOP - LOCK_Y + 1]);
 }
 
-// The frame; with cord = false the anchor is left solid, which shapes the guard's cavity.
-module frame(cord = true) {
+module frame() {
   x1 = E + WIDTH[P];
   s = stop_face(P);
   difference() {
@@ -479,56 +469,7 @@ module frame(cord = true) {
     pole_holes(P);
     post_hole(POST_X0, x1);
     along_x(x1, FW + 1) lock();
-    if (cord) cord_path();
-  }
-}
-
-// ---------------------------------------------------------------------------------------------
-// TPU guard
-
-GUARD_BACK = ANCHOR_Y + ANCHOR_R + GUARD_WALL;
-
-// Guard outline (Y, Z), as in v27: faces parallel to the anchor bar (y - z constant) above and
-// below it, a back face, an end cap across the bar and a top.
-module guard2d() {
-  upper = ANCHOR_Y - ANCHOR_Z - ANCHOR_R * sqrt(2) - 5.28; // y - z of the face above the bar
-  lower = FRAME_TOP + 3.1; // y - z of the face below it
-  cap = ANCHOR_Y + ANCHOR_Z + ANCHOR_R * sqrt(2) + 3.14; // y + z of the end cap
-  top = ANCHOR_Z + ANCHOR_R + 2.02;
-  b = GUARD_BACK;
-  polygon([[LOCK_Y, -GUARD_WALL], [lower - GUARD_WALL, -GUARD_WALL], [b, b - lower], [b, cap - b],
-           [cap - top, top], [upper + top, top], [LOCK_Y, LOCK_Y - upper]]);
-}
-
-module guard() {
-  g = GUARD_WALL;
-  c = GUARD_CHAMFER;
-  back = GUARD_BACK;
-  difference() {
-    hull() {
-      along_x(-g, FW + g) offset(delta = c, chamfer = true) offset(delta = -c) guard2d();
-      along_x(-g + c, FW + g - c) guard2d();
-    }
-    // Cavity: the frame behind the lock slot with clearance.
-    intersection() {
-      union() {
-        along_x(-GUARD_CLEARANCE, FW + GUARD_CLEARANCE) offset(GUARD_CLEARANCE) crossbar2d();
-        along_x(-GUARD_BAR_CLEARANCE, FW + GUARD_BAR_CLEARANCE) offset(GUARD_BAR_CLEARANCE) anchor2d();
-      }
-      translate([0, 0, -10]) linear_extrude(100) crossbar_plan();
-    }
-    // The pinky column's top part, its back edges rounded.
-    intersection() {
-      translate([0, 0, -10]) linear_extrude(100) offset(GUARD_CLEARANCE) round2d(EDGE_R) square([E + WIDTH[P], FRAME_TOP]);
-      along_x(-1, E + WIDTH[P] + 1) offset(GUARD_CLEARANCE) round2d(EDGE_R) square([FRAME_TOP, WH]);
-    }
-    translate([-10, LOCK_Y - 10, -10]) cube([FW + 20, 10 + eps, WH + 30]);
-    top = ANCHOR_Y + ANCHOR_R;
-    for (x = [ANCHOR_X0 - (top - ANCHOR_Y) + GUARD_HOLE_INSET, ANCHOR_X1 + (top - ANCHOR_Y) - GUARD_HOLE_INSET])
-      translate([x, ANCHOR_Y, ANCHOR_Z]) rotate([-90, 0, 0]) {
-        cylinder(r = 4, h = back - ANCHOR_Y + 1);
-        translate([0, 0, back - ANCHOR_Y - c]) cylinder(r1 = 4, r2 = 4 + c + eps, h = c + eps);
-      }
+    cord_path();
   }
 }
 
@@ -540,10 +481,9 @@ PARTS = [
   ["frame", "frame"], ["ring_wall", "wall", R], ["middle_wall", "wall", M], ["index_wall", "wall", I],
   ["end_wall", "end_wall"], ["pinky_roller", "roller", P], ["ring_roller", "roller", R],
   ["middle_roller", "roller", M], ["index_roller", "roller", I], ["pinky_pin", "pin", P],
-  ["ring_pin", "pin", R], ["middle_pin", "pin", M], ["index_pin", "pin", I], ["post", "post"],
-  ["guard", "guard"]];
+  ["ring_pin", "pin", R], ["middle_pin", "pin", M], ["index_pin", "pin", I], ["post", "post"]];
 COLORS = [["frame", "gainsboro"], ["wall", "gold"], ["end_wall", "skyblue"], ["roller", "tomato"],
-          ["pin", "dimgray"], ["post", "royalblue"], ["guard", [0.5, 0, 0.5, 0.4]]];
+          ["pin", "dimgray"], ["post", "royalblue"]];
 
 module part_in_place(p) {
   f = p[2];
@@ -553,16 +493,13 @@ module part_in_place(p) {
   else if (p[1] == "roller") roller(f);
   else if (p[1] == "pin") finger_pin(f);
   else if (p[1] == "post") post();
-  else if (p[1] == "guard") guard();
 }
 
 // Print pose. Frame, walls and rollers stand on their pinky-side face with the pole holes
-// vertical; pins lie on their flat; the post lies on its chamfered side; the guard stands on
-// its back face.
+// vertical; pins lie on their flat; the post lies on its chamfered side.
 module print_pose(p) {
   f = p[2];
-  if (p[1] == "guard") translate([0, 0, GUARD_BACK]) rotate([-90, 0, 0]) children();
-  else if (p[1] == "post") translate([0, 0, -POST_Z - post_clearance]) children();
+  if (p[1] == "post") translate([0, 0, -POST_Z - post_clearance]) children();
   else if (p[1] == "pin") translate([0, 0, -(axis_z(f) - pin_diameter / 2 + pin_flat)]) children();
   else {
     x0 = p[1] == "frame" ? 0 : p[1] == "wall" ? wall_x(f) : p[1] == "end_wall" ? END_WALL_X

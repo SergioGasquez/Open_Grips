@@ -11,8 +11,8 @@ print-ready STLs from the original parametric FreeCAD model.
 
 ## OpenSCAD models
 
-[`openscad/`](openscad/README.md) rebuilds the Prometheus v43 and Sisyphus v27 STEP files as parametric
-OpenSCAD models that export every part for either hand.
+[`openscad/`](openscad/README.md) rebuilds the Prometheus v43 and Sisyphus v27 STEP files, without the TPU
+guard, as parametric OpenSCAD models that export every part for either hand.
 
 ## This Fork
 

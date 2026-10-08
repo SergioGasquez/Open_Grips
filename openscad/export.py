@@ -33,7 +33,6 @@ PARTS = [
     "middle_pin",
     "index_pin",
     "post",
-    "guard",
 ]
 
 

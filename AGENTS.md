@@ -14,8 +14,8 @@ agent needs to change or rerun them.
 
 - Hand measuring covers Prometheus only. The STEP/STL files themselves are untouched; `openscad/`
   rebuilds both (Prometheus v43, Sisyphus v27).
-- `generate.py` does not make the TPU guard (v43's fits only the default frame); the OpenSCAD model
-  derives it from the frame, so it fits any parameters.
+- No TPU guard and no non-printed parts besides the cord: neither `generate.py` nor `openscad/` makes
+  the STEP files' guard.
 - Remotes: `origin` is the user's fork (SergioGasquez, push here), `jared` is its parent
   (Jared-Is-Coding, base for task branches), `upstream` is the original (opengrips). Never push to `jared`
   or `upstream`.
@@ -71,7 +71,7 @@ agent needs to change or rerun them.
 - Both reproduce their STEP at the defaults. Prometheus: v43 moved the blockers by hand (defaults
   `To_Blocker` 8.8/12.7/13.9/14.2) but kept the frame length of the VarSet blockers, so checks pass
   `-D Base_Frame_Height=104`. Sisyphus: features absent from the original model (finger stops,
-  anchor, guard outline, cradle tool offsets) are v27 constants, commented "as in v27".
+  anchor, cradle tool offsets) are v27 constants, commented "as in v27".
 - Edges rounded by `along_x_rounded` need a keep-sharp profile reaching at least r past the edges to
   keep. Use `round2d` (round joins): `offset(delta)` miters spike through profiles at tangent cusps.
 - Unioned pieces must overlap (`eps`), not touch, and cuts must not end on existing faces;

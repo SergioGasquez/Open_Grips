@@ -2,9 +2,11 @@
 
 Parametric OpenSCAD rebuilds of the fork's printable designs: `prometheus.scad` rebuilds
 `../OpenGrips Prometheus v43.step` and `sisyphus.scad` rebuilds `../OpenGrips Sisyphus v27.step`.
-Every part (frame, walls, end wall, rollers, printed pins, post and TPU guard) exports
-print-ready, for the left or the right hand. At their default values both models reproduce
-their STEP file.
+Every part (frame, walls, end wall, rollers, pins and post) exports print-ready, for the left or
+the right hand, and all of them print in the same material: no metal rods, screws or TPU. The
+only extra is the cord through the anchor. At their default values both models reproduce their
+STEP file, except the STEP files' TPU guard, which is left out: nothing attaches to it, and the
+anchor's cord exits are rounded without it.
 
 Requires OpenSCAD 2025 or newer (the Manifold backend; older releases take minutes per part).
 
@@ -49,14 +51,14 @@ The values of `../Original/OpenGrips_Sisyphus.FCStd`'s VarSet, renamed consisten
 | `Base_<F>_Diameter`, `Base_<F>_Width` | Roller size; all roller tops are level with the middle roller's |
 | `Base_Frame_Height` | Wall length up to the lock slot |
 
-The finger stops, the anchor and the guard outline have no counterpart in the original model and
+The finger stops and the anchor have no counterpart in the original model and
 keep v27's dimensions.
 
 ## Printing
 
 The parts export in the orientation `../prometheus-fit/generate.py` uses: frame, walls and
 rollers on their pinky-side face with the pole holes vertical, pins on their flat, the post on its
-chamfered side, the guard on its cord-hole face. For Prometheus print settings see
+chamfered side. For Prometheus print settings see
 `../prometheus-fit/README.md`.
 
 ## How faithful
@@ -68,13 +70,12 @@ chamfered side, the guard on its cord-hole face. For Prometheus print settings s
 uvx --with trimesh --with manifold3d --with scipy --with rtree python openscad/check_step.py
 ```
 
-Every part is within 0.7% of the STEP volume and, except the Sisyphus guard (0.5 mm), within
-0.1 mm of its surface at the 95th percentile. Known differences:
+Every part is within 0.5% of the STEP volume and within 0.1 mm of its surface at the 95th
+percentile. Known differences:
 
 - Prometheus blocker tips follow the original rule: v43's hand-moved tips sit 0.15–0.38 mm lower.
 - Pins are centered in their holes; v43's index pin and v27's ring and index pins are 0.1 mm off.
-- Sisyphus: the pinky cradle is approximated by one roller cut, and the guard cavity by the frame
-  with uniform clearance.
+- Sisyphus: the pinky cradle is approximated by one roller cut.
 - Some exports contain a few zero-area triangles where rounded surfaces meet flat ones; slicers
   ignore them.
 

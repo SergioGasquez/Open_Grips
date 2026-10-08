@@ -8,7 +8,7 @@
 use <common.scad>
 
 /* [Output] */
-part = "assembly"; // [assembly, frame, pinky_roller, ring_roller, middle_roller, index_roller, ring_wall, middle_wall, index_wall, end_wall, pinky_pin, ring_pin, middle_pin, index_pin, post, guard]
+part = "assembly"; // [assembly, frame, pinky_roller, ring_roller, middle_roller, index_roller, ring_wall, middle_wall, index_wall, end_wall, pinky_pin, ring_pin, middle_pin, index_pin, post]
 // The model is a left-hand grip; right mirrors every part.
 hand = "left"; // [left, right]
 
@@ -123,10 +123,7 @@ ANCHOR_BORE_R = 4;
 ANCHOR_R = ANCHOR_BORE_R + 4.4;
 ANCHOR_X0 = E + WIDTH[P]; // its 45 degree ends pass through these X at the tube top
 ANCHOR_X1 = roller_x(I) + WIDTH[I] / 2;
-GUARD_HOLE_INSET = 4.15; // cord holes of the TPU guard, outside the anchor ends
 CORD_EXIT_R = 3; // round of the bore where it breaks out of the anchor ends
-GUARD_WALL = 3;
-GUARD_CHAMFER = 2;
 
 for (f = [P:I])
   assert(blocker_y(f) + 2 * BLOCKER_R < LOCK_Y,
@@ -444,8 +441,7 @@ module cord_path() {
   bore_exit_round([ANCHOR_Y, ANCHOR_Z], ANCHOR_BORE_R, [ANCHOR_X1, top], [1, 1] / sqrt(2), CORD_EXIT_R);
 }
 
-// The frame; with cord = false the anchor is left solid, which shapes the guard's cavity.
-module frame(cord = true) {
+module frame() {
   a = axis(P);
   x1 = E + WIDTH[P];
   // Where the plan fillet between the column top and the anchor end starts.
@@ -512,29 +508,7 @@ module frame(cord = true) {
     pole_holes(P);
     post_hole(E, x1);
     along_x(x1, FW + 1) lock();
-    if (cord) cord_path();
-  }
-}
-
-// ---------------------------------------------------------------------------------------------
-// TPU guard: a sleeve over the crossbar and anchor, open at the front, with two countersunk cord
-// holes down to the bore. It leaves the lock slot free for the wall tongues.
-
-module guard() {
-  y0 = LOCK_Y + eps; // just behind the crossbar front, so the frame cuts the opening cleanly
-  y1 = ANCHOR_Y + ANCHOR_R + GUARD_WALL;
-  g = GUARD_WALL;
-  c = GUARD_CHAMFER;
-  difference() {
-    hull() for (s = [[0, c, c], [c, 0, c], [c, c, 0]])
-      translate([-g + s[0], y0 + s[1], -g + s[2]]) cube([FW + 2 * g - 2 * s[0], y1 - y0 - 2 * s[1], T + 2 * g - 2 * s[2]]);
-    frame(cord = false);
-    along_x(E + WIDTH[P], FW) lock();
-    for (x = [ANCHOR_X0 - GUARD_HOLE_INSET, ANCHOR_X1 + GUARD_HOLE_INSET])
-      translate([x, ANCHOR_Y, ANCHOR_Z]) rotate([-90, 0, 0]) {
-        cylinder(r = ANCHOR_BORE_R, h = y1 - ANCHOR_Y + 1);
-        translate([0, 0, y1 - ANCHOR_Y - c]) cylinder(r1 = ANCHOR_BORE_R, r2 = ANCHOR_BORE_R + c + eps, h = c + eps);
-      }
+    cord_path();
   }
 }
 
@@ -546,10 +520,9 @@ PARTS = [
   ["frame", "frame"], ["ring_wall", "wall", R], ["middle_wall", "wall", M], ["index_wall", "wall", I],
   ["end_wall", "end_wall"], ["pinky_roller", "roller", P], ["ring_roller", "roller", R],
   ["middle_roller", "roller", M], ["index_roller", "roller", I], ["pinky_pin", "pin", P],
-  ["ring_pin", "pin", R], ["middle_pin", "pin", M], ["index_pin", "pin", I], ["post", "post"],
-  ["guard", "guard"]];
+  ["ring_pin", "pin", R], ["middle_pin", "pin", M], ["index_pin", "pin", I], ["post", "post"]];
 COLORS = [["frame", "gainsboro"], ["wall", "gold"], ["end_wall", "skyblue"], ["roller", "tomato"],
-          ["pin", "dimgray"], ["post", "royalblue"], ["guard", [0.5, 0, 0.5, 0.4]]];
+          ["pin", "dimgray"], ["post", "royalblue"]];
 
 module part_in_place(p) {
   f = p[2];
@@ -559,16 +532,13 @@ module part_in_place(p) {
   else if (p[1] == "roller") roller(f);
   else if (p[1] == "pin") finger_pin(f);
   else if (p[1] == "post") post();
-  else if (p[1] == "guard") guard();
 }
 
 // Print pose. Frame, walls and rollers stand on their pinky-side face with the pole holes
-// vertical; pins lie on their flat; the post lies on its chamfered side; the guard stands on
-// its cord-hole face.
+// vertical; pins lie on their flat; the post lies on its chamfered side.
 module print_pose(p) {
   f = p[2];
-  if (p[1] == "guard") translate([0, 0, ANCHOR_Y + ANCHOR_R + GUARD_WALL]) rotate([-90, 0, 0]) children();
-  else if (p[1] == "post") translate([0, 0, -POST_Z - post_clearance]) children();
+  if (p[1] == "post") translate([0, 0, -POST_Z - post_clearance]) children();
   else if (p[1] == "pin") translate([0, 0, -(axis_z(f) - pin_diameter / 2 + pin_flat)]) children();
   else {
     x0 = p[1] == "frame" ? 0 : p[1] == "wall" ? wall_x(f) : p[1] == "end_wall" ? END_WALL_X
