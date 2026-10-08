@@ -39,10 +39,16 @@ SOLIDS = {
     "post": 13,
 }
 MODELS = {
-    # v43 moved the blockers by hand but kept the frame length of the original blocker positions.
+    # v43's values; it moved the blockers by hand but kept the frame length of the original blocker
+    # positions.
     "prometheus": {
         "step": "OpenGrips Prometheus v43.step",
-        "defines": ["-DBase_Frame_Height=104"],
+        "defines": [
+            f"-DBase_{finger}_{name}={value}"
+            for name, values in (("Height", (23, 32, 15)), ("Depth", (8, 12, 12)), ("To_Blocker", (14.2, 13.9, 12.7)))
+            for finger, value in zip("IMR", values)
+        ]
+        + ["-DBase_P_To_Blocker=8.8", "-DBase_Frame_Height=104"],
         "offset": [0, 0, 0],
         "solids": SOLIDS,
     },

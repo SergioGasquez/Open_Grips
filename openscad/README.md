@@ -4,9 +4,9 @@ Parametric OpenSCAD rebuilds of the fork's printable designs: `prometheus.scad` 
 `../OpenGrips Prometheus v43.step` and `sisyphus.scad` rebuilds `../OpenGrips Sisyphus v27.step`.
 Every part (frame, walls, end wall, rollers, pins and post) exports print-ready, for the left or
 the right hand, and all of them print in the same material: no metal rods, screws or TPU. The
-only extra is the cord through the anchor. At their default values both models reproduce their
-STEP file, except the STEP files' TPU guard, which is left out: nothing attaches to it, and the
-anchor's cord exits are rounded without it.
+only extra is the cord through the anchor. Both reproduce their STEP file at the STEP's values
+(Prometheus defaults to one measured hand instead, see below), except the STEP files' TPU guard,
+which is left out: nothing attaches to it, and the anchor's cord exits are rounded without it.
 
 Requires OpenSCAD 2025 or newer (the Manifold backend; older releases take minutes per part).
 
@@ -32,9 +32,9 @@ The parameter file is optional and uses the format `../prometheus-fit/measure-ha
 ### Prometheus
 
 Names and meanings match the VarSet of `../Original/OpenGrips_Prometheus.FCStd`; see
-`../prometheus-fit/README.md` for how to measure them. The defaults are the VarSet's except the
-four `Base_<F>_To_Blocker`, which default to the blocker positions Jared set by hand in v43
-(VarSet: 14, 15, 15, 12). The frame length follows the middle finger, so its
+`../prometheus-fit/README.md` for how to measure them. The finger defaults (`Height`, `Depth`,
+`To_Blocker`) are one measured right hand, recorded at the top of `prometheus.scad` with the v43
+values for comparison; the roller and frame sizes are the VarSet's. The frame length follows the middle finger, so its
 `Base_M_Height + Base_M_To_Blocker` must be the largest; the model stops with a message if not.
 Unlike the FreeCAD model, the ring and middle rails may overlap.
 

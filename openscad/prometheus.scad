@@ -13,21 +13,24 @@ part = "assembly"; // [assembly, frame, pinky_roller, ring_roller, middle_roller
 hand = "left"; // [left, right]
 
 /* [Fingers, relative to the pinky (mm)] */
+// Defaults: one measured right hand, measure-hand.html on PXL_20261008_143506195.jpg (ruler 100 mm,
+// 12.6 px/mm). v43 itself: Height 23/32/15/0, Depth 8/12/12/0, To_Blocker 14.2/13.9/12.7/8.8
+// (index/middle/ring/pinky) and Base_Frame_Height 104.
 // Roller up/down (fingertip position along the fingers)
-Base_I_Height = 23;
-Base_M_Height = 32;
-Base_R_Height = 15;
+Base_I_Height = 23.5;
+Base_M_Height = 32.1;
+Base_R_Height = 22.0;
 Base_P_Height = 0;
 // Roller forward/backward
-Base_I_Depth = 8;
-Base_M_Depth = 12;
-Base_R_Depth = 12;
+Base_I_Depth = 4.2;
+Base_M_Depth = 6.7;
+Base_R_Depth = 8.4;
 Base_P_Depth = 0;
-// Roof height: roller top to blocker. Defaults are the v43 blocker positions (VarSet: 14, 15, 15, 12).
-Base_I_To_Blocker = 14.2;
-Base_M_To_Blocker = 13.9;
-Base_R_To_Blocker = 12.7;
-Base_P_To_Blocker = 8.8;
+// Roof height: roller top to blocker
+Base_I_To_Blocker = 13.8;
+Base_M_To_Blocker = 12.0;
+Base_R_To_Blocker = 13.2;
+Base_P_To_Blocker = 13.9;
 
 /* [Rollers (mm)] */
 Base_I_Diameter = 19;

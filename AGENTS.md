@@ -68,9 +68,9 @@ agent needs to change or rerun them.
 - Coordinates as in the FreeCAD models: X along the roller axes (pinky at low X), Y along the
   fingers, Z depth. Sisyphus is shifted so its frame corner is the origin (STEP minus
   [5.965, 8.069, 4.13]).
-- Both reproduce their STEP at the defaults. Prometheus: v43 moved the blockers by hand (defaults
-  `To_Blocker` 8.8/12.7/13.9/14.2) but kept the frame length of the VarSet blockers, so checks pass
-  `-D Base_Frame_Height=104`. Sisyphus: features absent from the original model (finger stops,
+- Sisyphus reproduces v27 at its defaults. Prometheus defaults to the user's measured right hand;
+  `check_step.py` passes v43's values (it moved the blockers by hand, `To_Blocker` 8.8/12.7/13.9/14.2,
+  but kept the frame length of the VarSet blockers, `Base_Frame_Height` 104). Sisyphus: features absent from the original model (finger stops,
   anchor, cradle tool offsets) are v27 constants, commented "as in v27".
 - Edges rounded by `along_x_rounded` need a keep-sharp profile reaching at least r past the edges to
   keep. Use `round2d` (round joins): `offset(delta)` miters spike through profiles at tangent cusps.
