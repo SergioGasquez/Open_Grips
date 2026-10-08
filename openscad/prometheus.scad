@@ -5,6 +5,8 @@
 // Parameter names and meanings match the VarSet of ../Original/OpenGrips_Prometheus.FCStd, so the
 // output of ../prometheus-fit/measure-hand.html applies unchanged.
 
+use <common.scad>
+
 /* [Output] */
 part = "assembly"; // [assembly, frame, pinky_roller, ring_roller, middle_roller, index_roller, ring_wall, middle_wall, index_wall, end_wall, pinky_pin, ring_pin, middle_pin, index_pin, post, guard]
 // The model is a left-hand grip; right mirrors every part.
@@ -123,71 +125,13 @@ ANCHOR_X0 = E + WIDTH[P]; // its 45 degree ends pass through these X at the tube
 ANCHOR_X1 = roller_x(I) + WIDTH[I] / 2;
 GUARD_HOLE_INSET = 4.15; // cord holes of the TPU guard, outside the anchor ends
 CORD_EXIT_R = 3; // round of the bore where it breaks out of the anchor ends
+GUARD_WALL = 3;
+GUARD_CHAMFER = 2;
 
-// ---------------------------------------------------------------------------------------------
-// Helpers
-
-// Extrude a 2D (Y, Z) profile along X.
-module along_x(x0, x1) {
-  translate([x0, 0, 0]) rotate([90, 0, 90]) linear_extrude(x1 - x0) children();
-}
-
-// Extrude a 2D (X, Z) profile along Y.
-module along_y(y0, y1) {
-  translate([0, y1, 0]) rotate([90, 0, 0]) linear_extrude(y1 - y0) children();
-}
-
-// Rectangle (Y, Z) from p0 to p1 with its two front (low Y) corners rounded by EDGE_R.
-module front_rounded2d(p0, p1) {
-  intersection() {
-    round2d(EDGE_R) translate(p0) square([p1[0] - p0[0] + EDGE_R, p1[1] - p0[1]]);
-    translate(p0) square(p1 - p0);
-  }
-}
-
-// Round convex corners (r > 0) or concave corners (r < 0) of a 2D shape. Round joins on both
-// steps: delta (mitred) joins spike through the shape at tangent cusps.
-module round2d(r) {
-  offset(r) offset(-r) children();
-}
-
-// Sphere for rounding: polyhedral spheres fall short of r along the axes, so scale up the facets.
-module ball(r) {
-  scale(1 / cos(180 / 48)) sphere(r, $fn = 48);
-}
-
-// Extrude a (Y, Z) profile along X with the perimeter edges of one end face rounded by r
-// (side = 1: the face at x1, side = -1: at x0). children(1), if given, is a larger profile
-// whose extra area keeps the edges it covers sharp; it must reach r past those edges.
-module along_x_rounded(x0, x1, r, side) {
-  face = side > 0 ? x1 : x0;
-  intersection() {
-    along_x(x0, x1) children(0);
-    union() {
-      if (side > 0) along_x(x0 - 1, x1 - r) children($children - 1);
-      else along_x(x0 + r, x1 + 1) children($children - 1);
-      minkowski() {
-        along_x(face - side * r - eps, face - side * r + eps) offset(-r) children($children - 1);
-        ball(r);
-      }
-    }
-  }
-}
-
-// Material to remove to round by r the edge along `axis` ("x" or "y") through point `at`, where
-// the solid lies toward -sign in the two other axes (sign = [s1, s2]).
-module edge_round_cutter(axis, from, to, at, r, sign) {
-  module cutter2d() {
-    translate(at) scale(sign) difference() {
-      translate([-r, -r]) square(r + eps);
-      translate([-r, -r]) circle(r);
-    }
-  }
-  if (axis == "x") along_x(from, to) cutter2d();
-  else along_y(from, to) cutter2d();
-}
-
-function arc_points(c, r, a0, a1, n = 24) = [for (k = [0:n]) c + r * [cos(a0 + (a1 - a0) * k / n), sin(a0 + (a1 - a0) * k / n)]];
+for (f = [P:I])
+  assert(blocker_y(f) + 2 * BLOCKER_R < LOCK_Y,
+         str(FINGERS[f], " blocker (Y ", blocker_y(f), ") reaches the crossbar (Y ", LOCK_Y,
+             "): the middle finger must have the largest Height + To_Blocker"));
 
 // ---------------------------------------------------------------------------------------------
 // Rollers, pins, post
@@ -217,8 +161,7 @@ module roller_half_profile(f, u0, u1, rf) {
 
 // Solid of revolution about the roller f axis from a (along the axis, radius) profile at local u.
 module about_roller_axis(f) {
-  translate([roller_x(f), axis_y(f), axis_z(f)]) rotate([0, 90, 0]) rotate([0, 0, 90])
-    rotate_extrude() rotate([0, 0, 90]) mirror([0, 1, 0]) children();
+  about_x_axis(roller_x(f), axis_y(f), axis_z(f)) children();
 }
 
 // The printed roller: trimmed for side clearance, ends rounded, chamfered bore for the pin.
@@ -255,38 +198,23 @@ module pole_holes(f) {
   translate([s[0], axis_y(f), axis_z(f)]) rotate([0, 90, 0]) cylinder(d = pin_hole_diameter, h = s[1] - s[0]);
 }
 
-module pin(f) {
+module finger_pin(f) {
   s = pin_span(f);
-  r = pin_diameter / 2;
-  translate([s[0] + pin_end_clearance, axis_y(f), axis_z(f)]) difference() {
-    rotate([0, 90, 0]) cylinder(r = r, h = s[1] - s[0] - 2 * pin_end_clearance);
-    translate([-1, -r, -r - 1]) cube([s[1] - s[0] + 2, 2 * r, 1 + pin_flat]);
-  }
-}
-
-// Post cross-section (Y, Z): rounded square with one chamfered corner that keys it in the holes.
-module post2d(clearance = 0) {
-  s = POST_SIZE - 2 * clearance;
-  translate([POST_Y + clearance, POST_Z + clearance]) hull() {
-    for (p = [[1, s - 1], [s - 1, s - 1], [s - 1, 1]]) translate(p) circle(1);
-    polygon([[0, 1], [1, 0], [1, 1]]);
-    translate([0, 1]) square([eps, s - 2]);
-    translate([1, 0]) square([s - 2, eps]);
-  }
+  pin(s[0] + pin_end_clearance, s[1] - pin_end_clearance, axis_y(f), axis_z(f), pin_diameter, pin_flat);
 }
 
 module post() {
-  along_x(E, FW) post2d(post_clearance);
+  c = post_clearance;
+  along_x(E, FW) post2d([POST_Y + c, POST_Z + c], POST_SIZE - 2 * c);
 }
 
 module post_hole(x0, x1) {
-  along_x(x0 - eps, x1 + eps) post2d();
+  along_x(x0 - eps, x1 + eps) post2d([POST_Y, POST_Z], POST_SIZE);
 }
 
 // Lock tongue / slot cross-section (Y, Z) along the crossbar.
-module lock2d() {
-  translate([LOCK_Y - eps, LOCK_Z]) square([2 * W + eps, W]);
-  for (z = [LOCK_Z, LOCK_Z + W]) translate([LOCK_Y + 1.5 * W, z]) circle(W / 2);
+module lock() {
+  lock2d(LOCK_Y, LOCK_Z, W);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -344,7 +272,7 @@ module roller_seat(f) {
   arc_c = [x0 + arc[0], a[0] + ROLLER_WAIST + arc[1]];
   front = blocker_y(f);
   // Under the roller (overlapping the wall plate to avoid coincident faces).
-  along_x(x0 - eps, x1) front_rounded2d([WALL_Y0, 0], [a[0] - POLE, a[1]]);
+  along_x(x0 - eps, x1) front_rounded2d([WALL_Y0, 0], [a[0] - POLE, a[1]], EDGE_R);
   difference() {
     translate([x0 - eps, a[0] - POLE - eps, 0]) cube([x1 - x0 + eps, arc_c[1] - a[0] + POLE, a[1] - POLE / 2 - 1]);
     translate([arc_c[0], arc_c[1], -1]) cylinder(r = arc[1], h = 100);
@@ -378,7 +306,7 @@ module ring_plate2d() {
 }
 
 module plate2d(top, rails) {
-  front_rounded2d([WALL_Y0, 0], [LOCK_Y, top]);
+  front_rounded2d([WALL_Y0, 0], [LOCK_Y, top], EDGE_R);
   for (f = rails) rail2d(f);
 }
 
@@ -392,7 +320,7 @@ module finger_wall(f, fin) {
       roller_seat(f);
       blocker_block(f, x0, x1, fin);
       blocker(f, fin[0], fin[1]);
-      along_x(x0, x1) lock2d();
+      along_x(x0, x1) lock();
     }
     cradle(f);
     pole_holes(f);
@@ -443,7 +371,7 @@ module end_wall() {
         plate2d(T, [I]);
         union() { plate2d(T, [I]); translate([LOCK_Y - EDGE_R, -10]) square([20, 100]); }
       }
-      along_x(x0, FW) lock2d();
+      along_x(x0, FW) lock();
     }
     pole_holes(I);
     post_hole(x0, FW);
@@ -513,40 +441,12 @@ module pinky_column2d() {
   }
 }
 
-// Material removed to round by r the edge where the anchor bore meets the end plane through p0
-// with outward unit normal n (in plan). A ball of radius r rolls along the edge touching the
-// bore and the plane; between the edge and the ball's path lies the cut.
-module cord_exit_round(p0, n, r, rb) {
-  steps = 72;
-  d = 0.05; // overshoot into the air so the cut leaves no slivers
-  // x where the plane passes through bore radius rho at angle t, offset off along n.
-  function x_on_plane(rho, t, off) =
-    let(y = ANCHOR_Y + rho * cos(t)) (n * [p0[0], p0[1]] + off - n[1] * y) / n[0];
-  function ring(rho, t) = [ANCHOR_Y + rho * cos(t), ANCHOR_Z + rho * sin(t)];
-  function corner(t) = let(
-    e = concat([x_on_plane(rb, t, 0)], ring(rb, t)),
-    c = concat([x_on_plane(rb + r, t, -r)], ring(rb + r, t)),
-    f1 = concat([c[0]], ring(rb - d, t)),
-    f2 = c + (r + d) * [n[0], n[1], 0],
-    out = (e - c) / norm(e - c))
-    [e + d * out, f1, f2, c];
-  // Neighbouring pieces overlap slightly so they share no faces.
-  for (k = [0:steps - 1]) {
-    a = corner(360 * (k - 0.1) / steps);
-    b = corner(360 * (k + 1.1) / steps);
-    difference() {
-      hull() for (q = [a[0], a[1], a[2], b[0], b[1], b[2]]) translate(q) cube(0.01, center = true);
-      hull() for (q = [a[3], b[3]]) translate(q) ball(r);
-    }
-  }
-}
-
 // The cord's way through the anchor: the bore, rounded where it breaks out of both ends.
 module cord_path() {
   top = ANCHOR_Y + ANCHOR_R;
   translate([-1, ANCHOR_Y, ANCHOR_Z]) rotate([0, 90, 0]) cylinder(r = ANCHOR_BORE_R, h = FW + 2);
-  cord_exit_round([ANCHOR_X0, top], [-1, 1] / sqrt(2), CORD_EXIT_R, ANCHOR_BORE_R);
-  cord_exit_round([ANCHOR_X1, top], [1, 1] / sqrt(2), CORD_EXIT_R, ANCHOR_BORE_R);
+  bore_exit_round([ANCHOR_Y, ANCHOR_Z], ANCHOR_BORE_R, [ANCHOR_X0, top], [-1, 1] / sqrt(2), CORD_EXIT_R);
+  bore_exit_round([ANCHOR_Y, ANCHOR_Z], ANCHOR_BORE_R, [ANCHOR_X1, top], [1, 1] / sqrt(2), CORD_EXIT_R);
 }
 
 // The frame; with cord = false the anchor is left solid, which shapes the guard's cavity.
@@ -616,7 +516,7 @@ module frame(cord = true) {
     cradle(P);
     pole_holes(P);
     post_hole(E, x1);
-    along_x(x1, FW + 1) lock2d();
+    along_x(x1, FW + 1) lock();
     if (cord) cord_path();
   }
 }
@@ -624,8 +524,6 @@ module frame(cord = true) {
 // ---------------------------------------------------------------------------------------------
 // TPU guard: a sleeve over the crossbar and anchor, open at the front, with two countersunk cord
 // holes down to the bore. It leaves the lock slot free for the wall tongues.
-GUARD_WALL = 3;
-GUARD_CHAMFER = 2;
 
 module guard() {
   y0 = LOCK_Y + eps; // just behind the crossbar front, so the frame cuts the opening cleanly
@@ -636,7 +534,7 @@ module guard() {
     hull() for (s = [[0, c, c], [c, 0, c], [c, c, 0]])
       translate([-g + s[0], y0 + s[1], -g + s[2]]) cube([FW + 2 * g - 2 * s[0], y1 - y0 - 2 * s[1], T + 2 * g - 2 * s[2]]);
     frame(cord = false);
-    along_x(E + WIDTH[P], FW) lock2d();
+    along_x(E + WIDTH[P], FW) lock();
     for (x = [ANCHOR_X0 - GUARD_HOLE_INSET, ANCHOR_X1 + GUARD_HOLE_INSET])
       translate([x, ANCHOR_Y, ANCHOR_Z]) rotate([-90, 0, 0]) {
         cylinder(r = ANCHOR_BORE_R, h = y1 - ANCHOR_Y + 1);
@@ -648,59 +546,48 @@ module guard() {
 // ---------------------------------------------------------------------------------------------
 // Output
 
-module part_in_place(name) {
-  if (name == "frame") frame();
-  else if (name == "ring_wall") ring_wall();
-  else if (name == "middle_wall") middle_wall();
-  else if (name == "index_wall") index_wall();
-  else if (name == "end_wall") end_wall();
-  else if (name == "post") post();
-  else if (name == "guard") guard();
-  else for (f = [P:I]) {
-    if (name == str(FINGERS[f], "_roller")) roller(f);
-    if (name == str(FINGERS[f], "_pin")) pin(f);
-  }
+// [name, kind, finger]
+PARTS = [
+  ["frame", "frame"], ["ring_wall", "wall", R], ["middle_wall", "wall", M], ["index_wall", "wall", I],
+  ["end_wall", "end_wall"], ["pinky_roller", "roller", P], ["ring_roller", "roller", R],
+  ["middle_roller", "roller", M], ["index_roller", "roller", I], ["pinky_pin", "pin", P],
+  ["ring_pin", "pin", R], ["middle_pin", "pin", M], ["index_pin", "pin", I], ["post", "post"],
+  ["guard", "guard"]];
+COLORS = [["frame", "gainsboro"], ["wall", "gold"], ["end_wall", "skyblue"], ["roller", "tomato"],
+          ["pin", "dimgray"], ["post", "royalblue"], ["guard", [0.5, 0, 0.5, 0.4]]];
+
+module part_in_place(p) {
+  f = p[2];
+  if (p[1] == "frame") frame();
+  else if (p[1] == "wall") { if (f == R) ring_wall(); else if (f == M) middle_wall(); else index_wall(); }
+  else if (p[1] == "end_wall") end_wall();
+  else if (p[1] == "roller") roller(f);
+  else if (p[1] == "pin") finger_pin(f);
+  else if (p[1] == "post") post();
+  else if (p[1] == "guard") guard();
 }
-
-// Low X of each part: the side printed face down.
-function part_x0(name) =
-  name == "frame" ? 0
-  : name == "ring_wall" ? wall_x(R)
-  : name == "middle_wall" ? wall_x(M)
-  : name == "index_wall" ? wall_x(I)
-  : name == "end_wall" ? END_WALL_X
-  : [for (f = [P:I]) if (name == str(FINGERS[f], "_roller")) roller_x(f) + roller_side_clearance][0];
-
-function is_pin(name) = search([name], [for (f = [P:I]) str(FINGERS[f], "_pin")]) != [[]];
 
 // Print pose. Frame, walls and rollers stand on their pinky-side face with the pole holes
 // vertical; pins lie on their flat; the post lies on its chamfered side; the guard stands on
 // its cord-hole face.
-module print_pose(name) {
-  if (name == "guard") translate([0, 0, ANCHOR_Y + ANCHOR_R + GUARD_WALL]) rotate([-90, 0, 0]) children();
-  else if (name == "post") translate([0, 0, -POST_Z - post_clearance]) children();
-  else if (is_pin(name))
-    translate([0, 0, -[for (f = [P:I]) if (name == str(FINGERS[f], "_pin")) axis_z(f) - pin_diameter / 2 + pin_flat][0]])
-      children();
-  else rotate([0, -90, 0]) translate([-part_x0(name), 0, 0]) children();
+module print_pose(p) {
+  f = p[2];
+  if (p[1] == "guard") translate([0, 0, ANCHOR_Y + ANCHOR_R + GUARD_WALL]) rotate([-90, 0, 0]) children();
+  else if (p[1] == "post") translate([0, 0, -POST_Z - post_clearance]) children();
+  else if (p[1] == "pin") translate([0, 0, -(axis_z(f) - pin_diameter / 2 + pin_flat)]) children();
+  else {
+    x0 = p[1] == "frame" ? 0 : p[1] == "wall" ? wall_x(f) : p[1] == "end_wall" ? END_WALL_X
+       : roller_x(f) + roller_side_clearance;
+    rotate([0, -90, 0]) translate([-x0, 0, 0]) children();
+  }
 }
-
-module hand_mirror() {
-  if (hand == "right") mirror([1, 0, 0]) children();
-  else if (hand == "left") children();
-  else assert(false, str("hand must be left or right, got ", hand));
-}
-
-PARTS = ["frame", "pinky_roller", "ring_roller", "middle_roller", "index_roller", "ring_wall", "middle_wall",
-         "index_wall", "end_wall", "pinky_pin", "ring_pin", "middle_pin", "index_pin", "post", "guard"];
-COLORS = ["gainsboro", "tomato", "tomato", "tomato", "tomato", "orange", "gold", "yellowgreen", "skyblue",
-          "dimgray", "dimgray", "dimgray", "dimgray", "royalblue", [0.5, 0, 0.5, 0.4]];
 
 // render() keeps previews (F5) fast: OpenCSG cannot normalize the frame's CSG tree.
 if (part == "assembly") {
-  hand_mirror() for (k = [0:len(PARTS) - 1]) color(COLORS[k]) render() part_in_place(PARTS[k]);
+  hand_mirror(hand) for (p = PARTS) color([for (c = COLORS) if (c[0] == p[1]) c[1]][0]) render() part_in_place(p);
 } else {
-  assert(search([part], PARTS) != [[]], str("unknown part: ", part));
-  if (in_place) hand_mirror() render() part_in_place(part);
-  else hand_mirror() print_pose(part) render() part_in_place(part);
+  p = [for (q = PARTS) if (q[0] == part) q][0];
+  assert(p != undef, str("unknown part: ", part));
+  if (in_place) hand_mirror(hand) render() part_in_place(p);
+  else hand_mirror(hand) print_pose(p) render() part_in_place(p);
 }
