@@ -9,6 +9,11 @@ The original project uses FreeCad for parametric modeling, and 3D printing for m
 See [`prometheus-fit/`](prometheus-fit/README.md): measure your hand from a photo and generate fitted,
 print-ready STLs from the original parametric FreeCAD model.
 
+## OpenSCAD models
+
+[`openscad/`](openscad/README.md) rebuilds the Prometheus v43 and Sisyphus v27 STEP files as parametric
+OpenSCAD models that export every part for either hand.
+
 ## This Fork
 
 The key things I was aiming to improve in this fork were:

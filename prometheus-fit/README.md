@@ -43,6 +43,9 @@ and the post.
 If the ring and middle rollers end up too close, the generator stops and says how much to raise
 `Base_M_Height` or lower `Base_R_Height`; split the difference between the two.
 
+The same `params.txt` also drives the OpenSCAD rebuild of the fork's v43 design, without FreeCAD and
+without the rail limit: see [`../openscad/`](../openscad/README.md).
+
 `examples/right-hand/` is one person's right hand, as an example.
 
 ## 3. Print
