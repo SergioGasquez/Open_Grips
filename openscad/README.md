@@ -38,6 +38,10 @@ values for comparison; the roller and frame sizes are the VarSet's. The frame le
 `Base_M_Height + Base_M_To_Blocker` must be the largest; the model stops with a message if not.
 Unlike the FreeCAD model, the ring and middle rails may overlap.
 
+The outer faces of the frame and the end wall carry an engraved `crimpdeq.com` in Inter Bold, as on
+the Crimpdeq case; the font is bundled in `fonts/` (SIL Open Font License). The model stops with a
+message if the text does not fit between the end wall's post hole and lock.
+
 ### Sisyphus
 
 The values of `../Original/OpenGrips_Sisyphus.FCStd`'s VarSet, renamed consistently
@@ -71,7 +75,7 @@ uvx --with trimesh --with manifold3d --with scipy --with rtree python openscad/c
 ```
 
 Every part is within 0.5% of the STEP volume and within 0.1 mm of its surface at the 95th
-percentile. Known differences:
+percentile, except the Prometheus end wall (0.26 mm) because of its engraving. Known differences:
 
 - Prometheus blocker tips follow the original rule: v43's hand-moved tips sit 0.15–0.38 mm lower.
 - Pins are centered in their holes; v43's index pin and v27's ring and index pins are 0.1 mm off.

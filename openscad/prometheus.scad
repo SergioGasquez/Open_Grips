@@ -6,6 +6,7 @@
 // output of ../prometheus-fit/measure-hand.html applies unchanged.
 
 use <common.scad>
+use <fonts/Inter-Bold.ttf>
 
 /* [Output] */
 part = "assembly"; // [assembly, frame, pinky_roller, ring_roller, middle_roller, index_roller, ring_wall, middle_wall, index_wall, end_wall, pinky_pin, ring_pin, middle_pin, index_pin, post]
@@ -128,10 +129,26 @@ ANCHOR_X0 = E + WIDTH[P]; // its 45 degree ends pass through these X at the tube
 ANCHOR_X1 = roller_x(I) + WIDTH[I] / 2;
 CORD_EXIT_R = 3; // round of the bore where it breaks out of the anchor ends
 
+// Engraved on the outer faces of the frame and the end wall, as on the back of the Crimpdeq case.
+// Centered between the end wall's post hole and lock, at the same Y on the frame.
+BRAND_TEXT = "crimpdeq.com";
+BRAND_FONT = "Inter:style=Bold";
+BRAND_SIZE = 4.5;
+BRAND_DEPTH = 0.8;
+BRAND_Y = (POST_Y + POST_SIZE + LOCK_Y) / 2;
+BRAND_EXTENT = textmetrics(BRAND_TEXT, size = BRAND_SIZE, font = BRAND_FONT).size; // [along Y, Z]
+
 for (f = [P:I])
   assert(blocker_y(f) + 2 * BLOCKER_R < LOCK_Y,
          str(FINGERS[f], " blocker (Y ", blocker_y(f), ") reaches the crossbar (Y ", LOCK_Y,
              "): the middle finger must have the largest Height + To_Blocker"));
+assert(BRAND_EXTENT[0] + 2 < LOCK_Y - POST_Y - POST_SIZE,
+       str("the end wall (", LOCK_Y - POST_Y - POST_SIZE, " mm between post hole and lock) is too short for ",
+           BRAND_TEXT));
+assert(BRAND_Y - BRAND_EXTENT[0] / 2 > axis_y(P) + DIAMETER[P] / 4 + POLE,
+       str(BRAND_TEXT, " reaches the pinky pole wall on the frame"));
+assert(BRAND_EXTENT[1] + 1 < T - 2 * EDGE_R,
+       str("the frame (", T, " mm thick) is too thin for ", BRAND_TEXT));
 
 // ---------------------------------------------------------------------------------------------
 // Rollers, pins, post
@@ -215,6 +232,16 @@ module post_hole(x0, x1) {
 // Lock tongue / slot cross-section (Y, Z) along the crossbar.
 module lock() {
   lock2d(LOCK_Y, LOCK_Z, W);
+}
+
+// BRAND_TEXT engraved into the outer side face at x (side: its outward direction along X),
+// centered on (BRAND_Y, T / 2). Seen from +X the text runs along +Y, so it is flipped on the -X
+// face and again for the right hand, where hand_mirror mirrors the part.
+module brand(x, side) {
+  flip = (side < 0) != (hand == "right");
+  along_x(side > 0 ? x - BRAND_DEPTH : x - 1, side > 0 ? x + 1 : x + BRAND_DEPTH)
+    translate([BRAND_Y, T / 2]) mirror([flip ? 1 : 0, 0])
+      text(BRAND_TEXT, size = BRAND_SIZE, font = BRAND_FONT, halign = "center", valign = "center");
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -375,6 +402,7 @@ module end_wall() {
     }
     pole_holes(I);
     post_hole(x0, FW);
+    brand(FW, 1);
   }
 }
 
@@ -512,6 +540,7 @@ module frame() {
     post_hole(E, x1);
     along_x(x1, FW + 1) lock();
     cord_path();
+    brand(0, -1);
   }
 }
 

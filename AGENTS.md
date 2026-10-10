@@ -33,7 +33,8 @@ agent needs to change or rerun them.
 - `openscad/prometheus.scad`, `openscad/sisyphus.scad`: one model per grip, every part in assembly
   coordinates plus a print pose; `part`/`hand` select the output, the hidden `in_place` skips the pose.
   Shared helpers (extrusion and edge rounding, pins, post, lock slot, bore exit round) are in
-  `openscad/common.scad`.
+  `openscad/common.scad`. `openscad/fonts/` bundles Inter Bold for the Prometheus `crimpdeq.com`
+  engraving (frame and end wall outer faces), the font of `crimpdeq-case`.
 - `openscad/export.py`: all parts of one hand with the system Python (stdlib only); same parameter
   file format as `generate.py`, unknown names rejected.
 - `openscad/check_step.py`: compares every part with its STEP solid (run with `uvx`, tessellates with
