@@ -25,7 +25,8 @@ python3 export.py sisyphus --hand left --out sisyphus-left
 
 The parameter file is optional and uses the format `../prometheus-fit/measure-hand.html` writes
 (`Name = value` lines, `#` comments). The STLs are named like the FreeCAD generator's
-(`prometheus_right_frame.stl`, …), so give them their own folder with `--out`.
+(`prometheus_right_frame.stl`, …), so give them their own folder with `--out`. `--in-place` keeps
+the parts in assembly coordinates instead of their print pose.
 
 ## Parameters
 

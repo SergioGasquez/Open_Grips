@@ -60,7 +60,9 @@ only for the frame (add a 5 mm brim, it stands 111 mm tall) and the index wall. 
 their flat side. `examples/right-hand/prometheus_right_A1.3mf` is a Bambu Lab A1 project with these
 settings; rebuild it whenever the STLs change (see `../AGENTS.md`).
 
-Assemble as in `../Original/Open_Grips.pdf` section 3.2: place a roller, insert its pin, slide the next
-wall onto the rails, repeat, add the end wall and push the post through the side hole.
+## 4. Assemble
+
+Follow the illustrated steps in [`assembly/`](assembly/src/README.md), an mdBook (`mdbook serve assembly`
+to read it in a browser).
 
 The fit has only been checked digitally; adjust the values after a test print.

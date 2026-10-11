@@ -30,6 +30,8 @@ agent needs to change or rerun them.
 - `prometheus-fit/examples/<hand>/`: one hand per folder: `params.txt` (comments record manual
   adjustments), generated STLs and the Bambu Lab A1 project.
 - Root `*.stl` files are local exports of the STEP files and are git-ignored.
+- `prometheus-fit/assembly/`: mdBook of the assembly steps. `render.sh` regenerates `src/images` from the
+  right-hand example (`export.py --in-place`, then `steps.scad`); rerun it when the model changes.
 - `openscad/prometheus.scad`, `openscad/sisyphus.scad`: one model per grip, every part in assembly
   coordinates plus a print pose; `part`/`hand` select the output, the hidden `in_place` skips the pose.
   Shared helpers (extrusion and edge rounding, pins, post, lock slot, bore exit round) are in

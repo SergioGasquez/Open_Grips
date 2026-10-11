@@ -3,10 +3,12 @@
 Usage:
     python3 export.py prometheus PARAMS --hand right
     python3 export.py sisyphus --hand left --out DIR
+    python3 export.py prometheus PARAMS --hand right --in-place --out DIR
 
 PARAMS (optional) holds `Name = value` lines, `#` lines ignored, e.g. the output of
 ../prometheus-fit/measure-hand.html; names must be parameters of the model. The STLs, named
 <model>_<hand>_<part>.stl, go to --out, by default next to PARAMS (or the current directory).
+--in-place keeps every part where it sits in the assembly instead of its print pose.
 """
 
 import argparse
@@ -57,8 +59,9 @@ def read_params(path, allowed):
     return params
 
 
-def export(openscad, scad, part, hand, params, path):
-    defines = [f"-D{k}={v}" for k, v in params.items()] + [f'-Dpart="{part}"', f'-Dhand="{hand}"']
+def export(openscad, scad, part, hand, in_place, params, path):
+    defines = [f"-D{k}={v}" for k, v in params.items()]
+    defines += [f'-Dpart="{part}"', f'-Dhand="{hand}"', f"-Din_place={str(in_place).lower()}"]
     result = subprocess.run(
         [openscad, "--backend", "Manifold", "--export-format", "binstl", "-o", str(path), *defines, str(scad)],
         capture_output=True,
@@ -77,6 +80,7 @@ def main():
     parser.add_argument("params", type=Path, nargs="?")
     parser.add_argument("--hand", choices=("left", "right"), required=True)
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--in-place", action="store_true", help="assembly coordinates instead of print pose")
     args = parser.parse_args()
 
     openscad = shutil.which("openscad") or "/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD"
@@ -88,7 +92,16 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     with ThreadPoolExecutor() as pool:
         jobs = [
-            pool.submit(export, openscad, scad, part, args.hand, params, out / f"{args.model}_{args.hand}_{part}.stl")
+            pool.submit(
+                export,
+                openscad,
+                scad,
+                part,
+                args.hand,
+                args.in_place,
+                params,
+                out / f"{args.model}_{args.hand}_{part}.stl",
+            )
             for part in PARTS
         ]
         for job in jobs:
