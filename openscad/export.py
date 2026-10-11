@@ -60,7 +60,7 @@ def read_params(path, allowed):
 def export(openscad, scad, part, hand, params, path):
     defines = [f"-D{k}={v}" for k, v in params.items()] + [f'-Dpart="{part}"', f'-Dhand="{hand}"']
     result = subprocess.run(
-        [openscad, "--backend", "Manifold", "-o", str(path), *defines, str(scad)],
+        [openscad, "--backend", "Manifold", "--export-format", "binstl", "-o", str(path), *defines, str(scad)],
         capture_output=True,
         text=True,
         check=False,
