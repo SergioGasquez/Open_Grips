@@ -32,7 +32,7 @@ hand, which put the rollers 8–14 mm too low on the example hand.
 With FreeCAD 1.1 installed, from this folder:
 
 ```sh
-/Applications/FreeCAD.app/Contents/Resources/bin/python generate.py examples/right-hand/params.txt --hand right
+/Applications/FreeCAD.app/Contents/Resources/bin/python generate.py examples/my-right-hand/params.txt --hand right
 ```
 
 This writes one STL per part next to `params.txt`, already oriented for printing. The original model is a
@@ -46,7 +46,12 @@ If the ring and middle rollers end up too close, the generator stops and says ho
 The same `params.txt` also drives the OpenSCAD rebuild of the fork's v43 design, without FreeCAD and
 without the rail limit: see [`../openscad/`](../openscad/README.md).
 
-`examples/right-hand/` is one person's right hand, as an example.
+`examples/right-hand/` is one person's right hand, as an example. Its ring and middle rails overlap,
+so its STLs come from the OpenSCAD model:
+
+```sh
+python3 ../openscad/export.py prometheus examples/right-hand/params.txt --hand right
+```
 
 ## 3. Print
 
