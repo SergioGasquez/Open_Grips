@@ -115,10 +115,15 @@ There is no script; it was built with the Bambu Studio CLI
    (`0.20mm Prometheus @BBL A1`); otherwise the CLI reports the process as incompatible.
 2. Import the STLs with `--orient 0 --arrange 1 --export-3mf` (no slicing).
 3. In `Metadata/model_settings.config`, add per-object `enable_support 1` / `support_type normal(auto)`
-   to the frame and index wall, plus `brim_type outer_only` / `brim_width 5` to the frame.
+   to the frame and index wall, plus `brim_type outer_only` / `brim_width 5` to the frame and the
+   ring, middle and index walls. Without a brim, a middle wall lifted on its first layers in a test
+   print and the rest of it printed as spaghetti over the plate.
 4. Re-run `--arrange 1 --orient 0` on that 3MF (supports added after arranging collide), then
    `--slice 0` to confirm no conflicts or floating-cantilever warnings. Slicing needs the same
    `--load-settings`/`--load-filaments` again; read `warning_message` in `<outputdir>/result.json`.
+5. The CLI arrange ignores brims: check the gaps between first-layer paths of different objects in
+   the G-code (keep them ≥ 2 mm) and move the item `transform` in `3D/3dmodel.model` where brims
+   come closer.
 
 Use absolute output paths; the CLI also drops a `result.json` in the working directory, so run it
 outside the repository.

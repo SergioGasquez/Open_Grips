@@ -56,8 +56,10 @@ python3 ../openscad/export.py prometheus examples/right-hand/params.txt --hand r
 ## 3. Print
 
 All parts in PETG (HF), 0.2 mm layers, 5 walls, 35% cubic infill, textured PEI plate. Enable supports
-only for the frame (add a 5 mm brim, it stands 111 mm tall) and the index wall. Pins print lying on
-their flat side. `examples/right-hand/prometheus_right_A1.3mf` is a Bambu Lab A1 project with these
+only for the frame and the index wall. Add a 5 mm brim to the frame (it stands 111 mm tall) and to the
+ring, middle and index walls: without one, a wall can lift on its first layers and the rest of it
+prints as spaghetti. Wash the plate with dish soap before printing. Pins print lying on their flat
+side. `examples/right-hand/prometheus_right_A1.3mf` is a Bambu Lab A1 project with these
 settings; rebuild it whenever the STLs change (see `../AGENTS.md`).
 
 ## 4. Assemble
