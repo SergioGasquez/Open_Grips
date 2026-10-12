@@ -7,13 +7,16 @@ it from a photo of your hand and export print-ready STLs. Only Prometheus is cov
 
 Open `measure-hand.html` in Chrome or Safari (single file, nothing to install).
 
+- Hands: measure one hand and use it for both (the values do not depend on which hand the photo shows),
+  or measure each hand from its own photo, switching between them with the Left/Right buttons.
 - Photo: palm up, fingers straight and slightly apart, a millimetre ruler beside the fingers raised to
   palm height (e.g. on a book), phone parallel to the table and above the fingers. Use the original
   full-resolution JPEG or PNG, not a screenshot.
 - Enter the distance between two ruler marks far apart (e.g. 0 and 10 cm = 100 mm) and click them.
 - For each finger, from index to pinky, click the base crease, middle joint (PIP) crease, end joint
   (DIP) crease and fingertip. Scroll to zoom, drag to pan or move a point.
-- Copy the text block into `params.txt` in a new folder, e.g. `examples/my-right-hand/params.txt`.
+- Copy the text block into `params.txt` in a new folder, e.g. `examples/my-right-hand/params.txt`; when
+  measuring each hand, one folder per hand. Its first line says which `--hand` to export it with.
 
 The page sets three values per finger, relative to the pinky:
 

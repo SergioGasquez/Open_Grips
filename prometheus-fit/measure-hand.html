@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prometheus hand measurement</title>
 <style>
+  [hidden] { display: none !important; }
   body { margin: 0; display: flex; height: 100vh; font: 14px system-ui, sans-serif; }
   main { flex: 1; position: relative; background: #222; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
@@ -17,6 +18,9 @@
   table { border-collapse: collapse; width: 100%; margin: 4px 0; }
   th, td { border: 1px solid #ccc; padding: 2px 4px; text-align: right; }
   th:first-child, td:first-child { text-align: left; }
+  #tabs { display: flex; gap: 4px; margin-top: 6px; }
+  #tabs button { flex: 1; }
+  #tabs button.active { background: #ffe58a; }
   textarea { width: 100%; height: 200px; font: 12px ui-monospace, monospace; box-sizing: border-box; }
   small { color: #666; }
 </style>
@@ -27,11 +31,15 @@
   <div id="hint">Choose, drop, or paste a hand photo</div>
 </main>
 <aside>
-  <h3>1. Photo</h3>
+  <h3>1. Hands</h3>
+  <label><input type="radio" name="mode" value="one" checked> Measure one hand, use it for both</label><br>
+  <label><input type="radio" name="mode" value="each"> Measure each hand</label>
+  <div id="tabs"></div>
+  <h3>2. Photo</h3>
   <input type="file" id="file" accept="image/jpeg,image/png,image/webp">
   <p><small>Palm up, fingers straight, ruler at palm height beside the fingers, camera parallel to the table.
     Scroll to zoom, drag to pan, drag a point to move it, click a step to place it again.</small></p>
-  <h3>2. Points</h3>
+  <h3>3. Points</h3>
   <!-- One finger, palm side, pointing right; the double PIP crease is clicked at its midpoint. -->
   <svg viewBox="0 20 300 92" width="100%" role="img" aria-label="Finger landmarks and measured lengths">
     <defs>
@@ -71,7 +79,7 @@
     camera tilt changes the scale across the photo.
     If a joint has a double crease, click midway between the creases.</small></p>
   <ol id="steps"></ol>
-  <h3>3. Results (mm)</h3>
+  <h3>4. Results (mm)</h3>
   <div id="results"></div>
   <textarea id="output" readonly></textarea>
   <button id="copy">Copy</button>
@@ -107,41 +115,58 @@ const $ = id => document.getElementById(id);
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
 
-let img = null;
-let fileName = '';
-let view = { s: 1, x: 0, y: 0 }; // canvas = image * s + (x, y)
-let points = {}; // step id -> image pixel coordinates
-let active = 0; // STEPS index placed by the next click, -1 when all are placed
+// One photo per hand. The measurements are mirror-invariant, so 'one' serves both hands.
+const newHand = () => ({
+  img: null,
+  fileName: '',
+  rulerMm: '',
+  view: { s: 1, x: 0, y: 0 }, // canvas = image * s + (x, y)
+  points: {}, // step id -> image pixel coordinates
+  active: 0, // STEPS index placed by the next click, -1 when all are placed
+});
+const hands = { one: newHand(), left: newHand(), right: newHand() };
+let current = 'one';
+let hand = hands.one;
 let drag = null;
 
 const f1 = x => x.toFixed(1);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const toScreen = p => ({ x: p.x * view.s + view.x, y: p.y * view.s + view.y });
-const toImage = p => ({ x: (p.x - view.x) / view.s, y: (p.y - view.y) / view.s });
+const toScreen = p => ({ x: p.x * hand.view.s + hand.view.x, y: p.y * hand.view.s + hand.view.y });
+const toImage = p => ({ x: (p.x - hand.view.x) / hand.view.s, y: (p.y - hand.view.y) / hand.view.s });
 function canvasPos(e) {
   const r = canvas.getBoundingClientRect();
   return { x: e.clientX - r.left, y: e.clientY - r.top };
 }
 
+function selectHand(key) {
+  current = key;
+  hand = hands[key];
+  $('rulerMm').value = hand.rulerMm;
+  $('file').value = '';
+  update();
+}
+
 function loadImage(file) {
   if (!file) return;
+  const target = hand;
   const im = new Image();
   im.onload = () => {
-    img = im;
-    fileName = file.name;
-    points = {};
-    active = 0;
     const s = Math.min(canvas.clientWidth / im.width, canvas.clientHeight / im.height);
-    view = { s, x: (canvas.clientWidth - im.width * s) / 2, y: (canvas.clientHeight - im.height * s) / 2 };
-    $('hint').style.display = 'none';
+    Object.assign(target, {
+      img: im,
+      fileName: file.name,
+      points: {},
+      active: 0,
+      view: { s, x: (canvas.clientWidth - im.width * s) / 2, y: (canvas.clientHeight - im.height * s) / 2 },
+    });
     update();
   };
   im.onerror = () => alert(`Cannot decode ${file.name}; export it as JPEG or PNG.`);
   im.src = URL.createObjectURL(file);
 }
 
-function measure() {
-  const mm = Number($('rulerMm').value);
+function measure({ rulerMm, points }) {
+  const mm = Number(rulerMm);
   if (!points.ruler0 || !points.ruler1 || !(mm > 0)) return null;
   const mmPerPx = mm / dist(points.ruler0, points.ruler1);
   const marks = FINGERS.map(f => LANDMARKS.map(([lm]) => points[`${f.key}_${lm}`]));
@@ -186,9 +211,13 @@ function resultsTable(m) {
 }
 
 function outputText(m) {
-  const rounded = Object.fromEntries(Object.entries(points).map(([id, p]) => [id, [Math.round(p.x), Math.round(p.y)]]));
+  const rounded = Object.fromEntries(Object.entries(hand.points).map(([id, p]) => [id, [Math.round(p.x), Math.round(p.y)]]));
+  const use = current === 'one'
+    ? 'both hands: export with --hand left and with --hand right'
+    : `the ${current} hand: export with --hand ${current}`;
   return [
-    `# Prometheus parameters (mm) from ${fileName}, ruler ${$('rulerMm').value} mm, ${f1(1 / m.mmPerPx)} px/mm`,
+    `# Prometheus parameters (mm) for ${use}`,
+    `# from ${hand.fileName}, ruler ${hand.rulerMm} mm, ${f1(1 / m.mmPerPx)} px/mm`,
     ...FINGERS.map(f => {
       const r = m.fingers[f.key];
       return `# ${f.name}: base-PIP ${f1(r.basePip)}, PIP-DIP ${f1(r.pipDip)}, DIP-tip ${f1(r.dipTip)}, base offset ${f1(r.stagger)}`;
@@ -199,15 +228,25 @@ function outputText(m) {
 }
 
 function update() {
+  $('tabs').hidden = current === 'one';
+  $('tabs').replaceChildren(...['left', 'right'].map(key => {
+    const button = document.createElement('button');
+    button.textContent = `${key === 'left' ? 'Left' : 'Right'} hand${measure(hands[key]) ? ' ✓' : ''}`;
+    button.className = key === current ? 'active' : '';
+    button.onclick = () => selectHand(key);
+    return button;
+  }));
+  $('hint').textContent = `Choose, drop, or paste a photo of ${current === 'one' ? 'either' : 'the ' + current} hand`;
+  $('hint').hidden = Boolean(hand.img);
   $('steps').replaceChildren(...STEPS.map((step, i) => {
     const li = document.createElement('li');
     li.textContent = step.label;
-    li.className = i === active ? 'active' : points[step.id] ? 'done' : '';
+    li.className = i === hand.active ? 'active' : hand.points[step.id] ? 'done' : '';
     li.style.borderLeft = `4px solid ${step.color}`;
-    li.onclick = () => { active = i; update(); };
+    li.onclick = () => { hand.active = i; update(); };
     return li;
   }));
-  const m = measure();
+  const m = measure(hand);
   $('results').innerHTML = m ? resultsTable(m) : '<small>Enter the ruler distance and place the ruler marks and all four fingers.</small>';
   $('output').value = m ? outputText(m) : '';
   draw();
@@ -218,6 +257,7 @@ function draw() {
   canvas.width = canvas.clientWidth * dpr;
   canvas.height = canvas.clientHeight * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const { img, view, points } = hand;
   if (!img) return;
   ctx.drawImage(img, view.x, view.y, img.width * view.s, img.height * view.s);
   ctx.lineWidth = 1.5;
@@ -242,10 +282,10 @@ function draw() {
 }
 
 canvas.addEventListener('pointerdown', e => {
-  if (!img) return;
+  if (!hand.img) return;
   const at = canvasPos(e);
-  const hit = STEPS.find(s => points[s.id] && dist(toScreen(points[s.id]), at) < 8);
-  drag = { at, view: { ...view }, id: hit?.id, moved: false };
+  const hit = STEPS.find(s => hand.points[s.id] && dist(toScreen(hand.points[s.id]), at) < 8);
+  drag = { at, view: { ...hand.view }, id: hit?.id, moved: false };
   canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', e => {
@@ -254,17 +294,17 @@ canvas.addEventListener('pointermove', e => {
   drag.moved ||= dist(at, drag.at) > 3;
   if (!drag.moved) return;
   if (drag.id) {
-    points[drag.id] = toImage(at);
+    hand.points[drag.id] = toImage(at);
     update();
   } else {
-    view = { ...drag.view, x: drag.view.x + at.x - drag.at.x, y: drag.view.y + at.y - drag.at.y };
+    hand.view = { ...drag.view, x: drag.view.x + at.x - drag.at.x, y: drag.view.y + at.y - drag.at.y };
     draw();
   }
 });
 canvas.addEventListener('pointerup', e => {
-  if (drag && !drag.moved && active >= 0) {
-    points[STEPS[active].id] = toImage(canvasPos(e));
-    active = STEPS.findIndex(s => !points[s.id]);
+  if (drag && !drag.moved && hand.active >= 0) {
+    hand.points[STEPS[hand.active].id] = toImage(canvasPos(e));
+    hand.active = STEPS.findIndex(s => !hand.points[s.id]);
   }
   drag = null;
   update();
@@ -273,12 +313,16 @@ canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const at = canvasPos(e);
   const k = Math.exp(-e.deltaY * 0.002);
-  view = { s: view.s * k, x: at.x - (at.x - view.x) * k, y: at.y - (at.y - view.y) * k };
+  const { view } = hand;
+  hand.view = { s: view.s * k, x: at.x - (at.x - view.x) * k, y: at.y - (at.y - view.y) * k };
   draw();
 }, { passive: false });
 
 $('file').onchange = e => loadImage(e.target.files[0]);
-$('rulerMm').oninput = update;
+$('rulerMm').oninput = e => { hand.rulerMm = e.target.value; update(); };
+document.querySelectorAll('[name=mode]').forEach(radio => {
+  radio.onchange = () => selectHand(radio.value === 'one' ? 'one' : 'left');
+});
 $('copy').onclick = () => navigator.clipboard.writeText($('output').value);
 addEventListener('dragover', e => e.preventDefault());
 addEventListener('drop', e => { e.preventDefault(); loadImage(e.dataTransfer.files[0]); });
