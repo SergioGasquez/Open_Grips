@@ -1,0 +1,15 @@
+# Prometheus parameters (mm), left hand: the right hand's values (../right-hand/params.txt) mirrored,
+# assuming both hands match; no left-hand photo was measured. Export with ../../../openscad/export.py
+# (the ring and middle rails overlap, which generate.py rejects).
+Base_I_Height = 23.5
+Base_I_Depth = 4.2
+Base_I_To_Blocker = 13.8
+Base_M_Height = 32.1
+Base_M_Depth = 6.7
+Base_M_To_Blocker = 12.0
+Base_R_Height = 22.0
+Base_R_Depth = 8.4
+Base_R_To_Blocker = 13.2
+Base_P_Height = 0
+Base_P_Depth = 0
+Base_P_To_Blocker = 13.9

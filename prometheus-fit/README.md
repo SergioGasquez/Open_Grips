@@ -46,11 +46,13 @@ If the ring and middle rollers end up too close, the generator stops and says ho
 The same `params.txt` also drives the OpenSCAD rebuild of the fork's v43 design, without FreeCAD and
 without the rail limit: see [`../openscad/`](../openscad/README.md).
 
-`examples/right-hand/` is one person's right hand, as an example. Its ring and middle rails overlap,
-so its STLs come from the OpenSCAD model:
+`examples/right-hand/` is one person's right hand, as an example. `examples/left-hand/` uses the same
+values, mirrored for the left hand, since that hand was not measured. Their ring and middle rails overlap,
+so their STLs come from the OpenSCAD model:
 
 ```sh
 python3 ../openscad/export.py prometheus examples/right-hand/params.txt --hand right
+python3 ../openscad/export.py prometheus examples/left-hand/params.txt --hand left
 ```
 
 ## 3. Print
@@ -59,8 +61,8 @@ All parts in PETG (HF), 0.2 mm layers, 5 walls, 35% cubic infill, textured PEI p
 only for the frame and the index wall. Add a 5 mm brim to the frame (it stands 111 mm tall) and to the
 ring, middle and index walls: without one, a wall can lift on its first layers and the rest of it
 prints as spaghetti. Wash the plate with dish soap before printing. Pins print lying on their flat
-side. `examples/right-hand/prometheus_right_A1.3mf` is a Bambu Lab A1 project with these
-settings; rebuild it whenever the STLs change (see `../AGENTS.md`).
+side. `examples/right-hand/prometheus_right_A1.3mf` and `examples/left-hand/prometheus_left_A1.3mf` are
+Bambu Lab A1 projects with these settings; rebuild them whenever the STLs change (see `../AGENTS.md`).
 
 ## 4. Assemble
 

@@ -28,7 +28,8 @@ agent needs to change or rerun them.
   Python (`/Applications/FreeCAD.app/Contents/Resources/bin/python`, FreeCAD 1.1.4); system Python has
   no FreeCAD modules.
 - `prometheus-fit/examples/<hand>/`: one hand per folder: `params.txt` (comments record manual
-  adjustments), generated STLs and the Bambu Lab A1 project.
+  adjustments), generated STLs and the Bambu Lab A1 project. `left-hand` mirrors the right hand's values
+  (no left-hand photo); keep the two `params.txt` equal.
 - Root `*.stl` files are local exports of the STEP files and are git-ignored.
 - `prometheus-fit/assembly/`: mdBook of the assembly steps. `render.sh` regenerates `src/images` from the
   right-hand example (`export.py --in-place`, then `steps.scad`); rerun it when the model changes.
